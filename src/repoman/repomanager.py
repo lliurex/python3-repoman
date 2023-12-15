@@ -4,6 +4,7 @@ import json
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from rebost import store
 from bs4 import BeautifulSoup
 import re
 
@@ -514,6 +515,47 @@ class manager():
 				self._writeSourceFile(sourceF,fcontent)
 				self._writeJsonFromSources(sourceF,fcontent)
 	#def addRepo
+
+	def chkPinning(self,file=""):
+		pin=False
+		if len(file)<=0:
+			file="/etc/apt/preferences.d/lliurex-pinning"
+		fcontent=self._getFileContent(file)
+		keys=["Package","Pin","Pin-Priority"]
+		for line in fcontent.split("\n"):
+			if line.strip().startswith("#")==True or ":" in line.strip()==False:
+				continue
+			spl=line.split(":")
+			if line.split(":")[0] in keys:
+				keys.remove(line.split(":")[0])
+		if len(keys)==0:
+			pin=True
+		return(pin)
+	#def chkPinning
+
+	def reversePinning(self,file=""):
+		if len(file)<=0:
+			file="/etc/apt/preferences.d/lliurex-pinning"
+		fcontent=self._getFileContent(file)
+		keys=["Package","Pin","Pin-Priority"]
+		content=[]
+		for line in fcontent.split("\n"):
+			raw=line
+			if ":" in line:
+				raw=line.replace("#","")
+				if raw.strip().split(":")[0] in keys:
+					if line.strip()[0]=="P":
+						raw="#{}".format(raw)
+			if len(raw)>0:
+				content.append("{}\n".format(raw))
+		if len(content)>0:
+			with open(file,"w") as f:
+				f.writelines(content)
+	#def reversePinning
+	
+	def updateRepos(self):
+		rebost=store.client()
+		rebost.update()
 #def class manager
 
 class RepoManager():
