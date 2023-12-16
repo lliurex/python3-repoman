@@ -127,9 +127,13 @@ class manager():
 							data[url][release]=urldata[release]
 				for url,urldata in data.items():
 					for release,releasedata in urldata.items():
-						releasedata["name"]=reponame
 						releasedata["desc"]=repodata.get("desc","")
 						releasedata["file"]=self._getSourcesPathFromJson(jsonF)
+						name=reponame
+						if reponame.split("_")[0]==os.path.basename(releasedata["file"]):
+							if len(reponame.split("_"))>1:
+								name="{0}_{1}".format(reponame.split("_")[0],os.path.basename(url.strip("/").split("/")[-1]))
+						releasedata["name"]=name
 		return(data)
 	#def _readJsonFile
 
@@ -415,12 +419,13 @@ class manager():
 			delcontent=[]
 			for line in fcontent.split("\n"):
 				if url.replace(" ","").strip() not in line.replace(" ","").strip() and len(line.strip())>0:
-					if line.startswith("deb")==False:
+					if line.strip().startswith("deb")==False:
 						line="deb {}".format(line)
 					newcontent.append(line.replace("// ","/ "))
 				elif len(line.strip())>0:
-					if line.startswith("deb")==False:
+					if line.strip().startswith("deb")==False and line.strip().startswith("#")==False:
 						line="deb {}".format(line)
+					newcontent.append("#{}".format(line.replace("// ","/ ").strip("#")))
 					delcontent.append(line)
 			if len(delcontent)>0:
 				self._writeJsonFromSources(file,delcontent)
