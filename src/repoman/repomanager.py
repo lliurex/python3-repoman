@@ -235,6 +235,37 @@ class manager():
 		return(sortcontent)
 	#def _sortContents
 
+	def _sortRepoByName(self,repos):
+		sortrepos=repos[1]
+		key=repos[0]
+		file=sortrepos["file"]
+		val=3
+		if file==self.sourcesFile:
+			if "mirror" in key.lower():
+				val=0
+			elif "lliurex" in key.lower():
+				val=1
+			elif "ubuntu" in key.lower():
+				val=2
+		return(val)
+	#def _sortRepoByName
+
+	def sortJsonRepos(self,repos):
+		jsonrepos={}
+		sortrepos={}
+		for url in self.sortContents(list(repos.keys())):
+			for release,releasedata in repos[url].items():
+				name=releasedata.get("name","")
+				desc=releasedata.get("desc","")
+				file=releasedata.get("file","")
+				if name not in jsonrepos.keys() and len(name)>0:
+					jsonrepos[name]={"desc":desc,"enabled":releasedata.get("enabled",False),"file":file}
+		for repo in sorted(jsonrepos.items(),key=self._sortRepoByName):
+			(name,data)=repo
+			sortrepos[name]=data
+		return(sortrepos)
+	#def _sortJsonRepos
+
 	def _writeSourceFile(self,file,content):
 		#Sort content
 		sortcontent=self.sortContents(content)
@@ -301,9 +332,15 @@ class manager():
 		sortrepos=repos[1]
 		key=list(sortrepos.keys())[0]
 		file=sortrepos[key]["file"]
-		val=1
+		name=sortrepos[key]["name"]
+		val=3
 		if file==self.sourcesFile:
-			val=0
+			if "mirror" in name.lower():
+				val=0
+			elif "lliurex" in name.lower():
+				val=1
+			elif "ubuntu" in name.lower():
+				val=2
 		return(val)
 	#def _sortRepoJson
 
@@ -339,8 +376,11 @@ class manager():
 					enabled=self._compareRepos(components,extracomps)
 				managerRepos[url][release].update({"enabled":enabled})
 			repos[url]=managerRepos[url]
-		sorted(repos.items(),key=self._sortRepoJson)
-		return(repos)
+		sortrepos={}
+		for repo in sorted(repos.items(),key=self._sortRepoJson):
+			(key,data)=repo
+			sortrepos[key]=data
+		return(sortrepos)
 	#def getRepos
 
 	def _getRepoByName(self,name):
