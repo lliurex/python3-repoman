@@ -11,10 +11,10 @@ import re
 
 class manager():
 	def __init__(self):
-		self.dbg=True
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
+		self.dbg=True
 	#def __init__
 	
 	def _debug(self,msg):
@@ -38,7 +38,8 @@ class manager():
 				repoComponents=list(set(repoline.split(":/")[1].split(" ")[2:]))
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
-				data[repoUrl][repoRelease]={"components":repoComponents,"file":file,"raw":repoline,"name":os.path.basename(file),"desc":""}
+				name="{0}_{1}".format(os.path.basename(file),repoUrl.strip("/").split("/")[-1])
+				data[repoUrl][repoRelease]={"components":repoComponents,"file":file,"raw":repoline,"name":name,"desc":""}
 		return(data)
 	#def _formatRepoLine
 
@@ -275,9 +276,9 @@ class manager():
 		for repo in managerRepos.keys():
 			if repo==url:
 				for release,data in managerRepos[url].items():
-					name=data.get("name","")
+					name="{0}".format(data.get("name",""))
 					if name=="":
-						name=data.get("file",url)
+						name="{0}_{1}".format(data.get("file",""),url.strip("/").split("/")[-1])
 					desc=data.get("desc","")
 					break
 				if name!=url:
@@ -297,19 +298,29 @@ class manager():
 	#def _compareRepos
 
 	def _sortRepoJson(self,repos):
-		sortrepos=repos
-		return(sortrepos)
+		sortrepos=repos[1]
+		key=list(sortrepos.keys())[0]
+		file=sortrepos[key]["file"]
+		val=1
+		if file==self.sourcesFile:
+			val=0
+		return(val)
 	#def _sortRepoJson
 
 	def getRepos(self):
 		repos={}
 		sourcesRepo=self._readSourcesFile(self.sourcesFile)
-		extraRepos=sourcesRepo.copy()
 		extraRepos=self._readSourcesDir(self.sourcesDir)
 		extraRepos.update(sourcesRepo)
 		managerRepos=self._readManagerDir(self.managerDir)
 		managerUrl=managerRepos.keys()
 		extraUrl=set(set(extraRepos.keys()-set(managerUrl)))
+		for url in extraUrl:
+			for key,data in extraRepos.items():
+				newdata=data.copy()
+				for datakey,dataitem in data.items():
+					newdata[datakey].update({"enabled":True})
+				repos.update({key:newdata})
 		for url in managerUrl:
 			(name,desc)=self._searchUrlNameDescFromJson(url,managerRepos)
 			enabled=False
@@ -328,13 +339,7 @@ class manager():
 					enabled=self._compareRepos(components,extracomps)
 				managerRepos[url][release].update({"enabled":enabled})
 			repos[url]=managerRepos[url]
-		for url in extraUrl:
-			for key,data in extraRepos.items():
-				newdata=data.copy()
-				for datakey,dataitem in data.items():
-					newdata[datakey].update({"enabled":True})
-				repos.update({key:newdata})
-		repos=self._sortRepoJson(repos)
+		sorted(repos.items(),key=self._sortRepoJson)
 		return(repos)
 	#def getRepos
 
