@@ -4,6 +4,7 @@ import json
 import subprocess
 from appconfig import appConfigN4d
 import requests
+import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from rebost import store
@@ -38,6 +39,7 @@ class manager():
 				if repoRelease not in data[repoUrl].keys():
 					data[repoUrl][repoRelease]={}
 				repoComponents=list(set(repoline.split(":/")[1].split(" ")[2:]))
+				repoComponents.sort()
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
 				name="{0}_{1}".format(os.path.basename(file),repoUrl.strip("/").split("/")[-1])
@@ -46,7 +48,12 @@ class manager():
 	#def _formatRepoLine
 
 	def _mergeData(self,dest,source):
-		dest["components"]=list(set(dest.get("components",[])+source.get("components",[])))
+		destComponents=dest.get("components",[])
+		destComponents.sort()
+		sourceComponents=source.get("components",[])
+		sourceComponents.sort()
+		dest["components"]=list(set(destComponents+sourceComponents))
+		dest["components"].sort()
 		raw=dest.get("raw","").split(":/")
 		if len(raw)==2:
 			rawline="{0}:/{1} {2}".format(raw[0]," ".join(raw[1].split(" ")[:2])," ".join(dest["components"]))
@@ -83,6 +90,7 @@ class manager():
 							data[url][release]={}
 						urldata[release]=self._mergeData(urldata[release],data[url][release])
 						data[url][release]=urldata[release]
+					data[url]=self._sortRepoComponents(data[url])
 		return(data)
 	#def _jsonFromContents
 
@@ -136,6 +144,9 @@ class manager():
 							if len(reponame.split("_"))>1:
 								name="{0}_{1}".format(reponame.split("_")[0],os.path.basename(url.strip("/").split("/")[-1]))
 						releasedata["name"]=name
+						releasedata["available"]=True
+						if url.startswith("http://mirror/"):
+							releasedata["available"]=self.isMirrorEnabled()
 		return(data)
 	#def _readJsonFile
 
@@ -162,15 +173,14 @@ class manager():
 						jfile=f.path
 						break
 		elif file==self.sourcesFile:
-			if len(content)>0:
-				jfile=self._getDefaultJsonFromDefaultRepo(content[0])
-			jfile=os.path.join(self.managerDir,file.replace(".list",".json"))
+			jfile=self._getDefaultJsonFromDefaultRepo(content[0])
+			jfile=os.path.join(self.managerDir,jfile)
 		self._debug("Json File: {}".format(jfile))
 		jcontent={}
 		if len(content)>0:
 			newcontent=[]
 			for line in content:
-				newcontent.append(line.replace("// ","/ "))
+				newcontent.append(line.replace("// ","/ ").replace("#",""))
 			content=newcontent
 			self._debug(": {}".format(file))
 			try:
@@ -180,7 +190,14 @@ class manager():
 				self._debug("{}".format(e))
 			if len(jcontent)>0:
 				for name,namedata in jcontent.items():
-					repos=list(set(namedata.get("repos",[])+content))
+					repos=namedata.get("repos")
+					sortrepos=[]
+					for repo in repos:
+						raw=self._formatRepoLine(repo).get("raw","")
+						if len(raw)>0:
+							sortrepos.append(raw.replace("#",""))
+
+					repos=list(set(sortrepos+content))
 					namedata["repos"]=repos
 			else:
 				data=self._formatRepoLine(content[0],file)
@@ -264,8 +281,9 @@ class manager():
 				name=releasedata.get("name","")
 				desc=releasedata.get("desc","")
 				file=releasedata.get("file","")
+				available=releasedata.get("available",False)
 				if name not in jsonrepos.keys() and len(name)>0:
-					jsonrepos[name]={"desc":desc,"enabled":releasedata.get("enabled",False),"file":file}
+					jsonrepos[name]={"desc":desc,"enabled":releasedata.get("enabled",False),"file":file,"available":available}
 		for repo in sorted(jsonrepos.items(),key=self._sortRepoByName):
 			(name,data)=repo
 			sortrepos[name]=data
@@ -277,12 +295,10 @@ class manager():
 		sortcontent=self.sortContents(content)
 		with open(file,"w") as f:
 			for line in sortcontent:
-				line=line.replace("deb","").strip()
-				if len(line.strip())>0:
-					if line.startswith("#"):
-						line="#deb  {}\n".format(line.replace("#","",1))
-					else:
-						line="deb  {}\n".format(line)
+				line=line.strip()
+				if len(line)>0:
+					if "deb " not in line and line[0]!="#":
+						line="deb {}".format(line)
 					line=line.replace("\t"," ")
 					formatline=[]
 					for l in line.split(" "):
@@ -291,6 +307,8 @@ class manager():
 								l=l[:-1]
 							formatline.append(l)
 					line=" ".join(formatline)
+					if line.endswith("\n")==False:
+						line+="\n"
 					f.write(line)
 	#def _writeSourceFile
 
@@ -334,6 +352,12 @@ class manager():
 		return enabled
 	#def _compareRepos
 
+	def _sortRepoComponents(self,repo):
+		for release,releasedata in repo.items():
+			releasedata["components"].sort()
+		return(repo)
+	#def _sortRepoComponents
+
 	def _sortRepoJson(self,repos):
 		sortrepos=repos[1]
 		key=list(sortrepos.keys())[0]
@@ -363,6 +387,8 @@ class manager():
 				newdata=data.copy()
 				for datakey,dataitem in data.items():
 					newdata[datakey].update({"enabled":True})
+					newdata[datakey].update({"available":True})
+					newdata[datakey]["components"].sort()
 				repos.update({key:newdata})
 		for url in managerUrl:
 			(name,desc)=self._searchUrlNameDescFromJson(url,managerRepos)
@@ -373,18 +399,25 @@ class manager():
 				managerReleases=managerRepos[url].keys()
 				extraReleases=extraRepos[url].keys()
 				enabled=self._compareRepos(managerReleases,extraReleases)
+			available=True
+			if url.startswith("http://mirror/"):
+				available=self.isMirrorEnabled()
 			for release in managerReleases:
+				managerRepos[url][release].update({"name":name})
+				managerRepos[url][release].update({"desc":desc})
+				managerRepos[url][release].update({"available":available})
 				if enabled==True:
-					managerRepos[url][release]["name"]=name
-					managerRepos[url][release]["desc"]=desc
 					components=list(set(managerRepos[url][release]["components"]))
+					components.sort()
 					extracomps=extraRepos[url].get(release,{}).get("components",[])
+					extracomps.sort()
 					enabled=self._compareRepos(components,extracomps)
 				managerRepos[url][release].update({"enabled":enabled})
 			repos[url]=managerRepos[url]
 		sortrepos={}
 		for repo in sorted(repos.items(),key=self._sortRepoJson):
 			(key,data)=repo
+			data=self._sortRepoComponents(data)
 			sortrepos[key]=data
 		return(sortrepos)
 	#def getRepos
@@ -446,14 +479,20 @@ class manager():
 			newcontent=[]
 			delcontent=[]
 			for line in fcontent.split("\n"):
+				line=line.strip()
 				if url.replace(" ","").strip() not in line.replace(" ","").strip() and len(line.strip())>0:
-					if line.strip().startswith("deb")==False:
+					if line.startswith("deb")==False and line.startswith("#")==False:
 						line="deb {}".format(line)
 					newcontent.append(line.replace("// ","/ "))
-				elif len(line.strip())>0:
-					if line.strip().startswith("deb")==False and line.strip().startswith("#")==False:
-						line="deb {}".format(line)
-					newcontent.append("#{}".format(line.replace("// ","/ ").strip("#")))
+				elif len(line)>0:
+					prefix=""
+					if  line.startswith("#")==False:
+						prefix+="#"
+					if line.startswith("deb")==False:
+						prefix+="deb"
+					if len(prefix)>0:
+						prefix+=" "
+					newcontent.append("{0}{1}\n".format(prefix,line.replace("// ","/ ")))
 					delcontent.append(line)
 			if len(delcontent)>0:
 				self._writeJsonFromSources(file,delcontent)
