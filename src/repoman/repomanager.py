@@ -405,7 +405,7 @@ class manager():
 				preschool=" preschool"
 			lines.append("deb {} {} {}{}".format(url,release,components,preschool))
 		return(lines)
-	def _generateRepos(self,lliurex=True):
+	#def _generateDefaultRepos
 
 	def getLliurexRepos(self):
 		return(self._generateDefaultRepos(lliurex=True))
