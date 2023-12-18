@@ -1,6 +1,8 @@
 #/usr/bin/env python3
 import os,sys,shutil
 import json
+import subprocess
+from appconfig import appConfigN4d
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -111,7 +113,7 @@ class manager():
 			try:
 				jcontent=json.loads(self._getFileContent(jsonF))
 			except Exception as e:
-				print("Err: {}".format(e))
+				self._debug("Err: {}".format(e))
 				return(data)
 			for reponame,repodata in jcontent.items():
 				repolines=repodata.get("repos")
@@ -387,6 +389,32 @@ class manager():
 		return(sortrepos)
 	#def getRepos
 
+	def _generateDefaultRepos(self,lliurex=True):
+		cmd=["lsb_release","-c"]
+		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
+		codename=output.split(" ")[-1]
+		if lliurex==True:
+			url="http://lliurex.net/{}/".format(codename)
+		else:
+			url="http://es.archive.ubuntu.com/ubuntu/"
+		lines=[]
+		components="main restricted universe multiverse"
+		for release in [codename,"{}-security".format(codename),"{}-updates".format(codename)]:
+			preschool=""
+			if "-" not in release and lliurex==True:
+				preschool=" preschool"
+			lines.append("deb {} {} {}{}".format(url,release,components,preschool))
+		return(lines)
+	def _generateRepos(self,lliurex=True):
+
+	def getLliurexRepos(self):
+		return(self._generateDefaultRepos(lliurex=True))
+	#def getLliurexRepos
+
+	def getUbuntuRepos(self):
+		return(self._generateDefaultRepos(lliurex=False))
+	#def getUbuntuRepos
+
 	def _getRepoByName(self,name):
 		repos=self.getRepos().copy()
 		ret={}
@@ -602,6 +630,19 @@ class manager():
 			with open(file,"w") as f:
 				f.writelines(content)
 	#def reversePinning
+
+	def isMirrorEnabled(self):
+		sw=True
+		n4d=appConfigN4d.appConfigN4d()
+		ret=n4d.n4dQuery("MirrorManager","is_mirror_available")
+		if isinstance(ret,dict):
+			if str(ret.get("status","-1"))!="0":
+				sw=False
+		elif isinstance(ret,str):
+			if ret!="Mirror available":
+				sw=False
+		return(sw)
+	#def isMirrorEnabled
 	
 	def updateRepos(self):
 		rebost=store.client()
