@@ -608,6 +608,7 @@ class manager():
 	#def _requestSession
 
 	def addRepo(self,url,name="",desc=""):
+		ret=1
 		url=url.replace("deb ","")
 		debparms=""
 		decompurl=url.split(":/")
@@ -639,6 +640,8 @@ class manager():
 			if len(fcontent)>0:
 				self._writeSourceFile(sourceF,fcontent)
 				self._writeJsonFromSources(sourceF,fcontent)
+				ret=0
+		return(ret)
 	#def addRepo
 
 	def chkPinning(self,file=""):
