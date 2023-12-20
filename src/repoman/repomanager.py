@@ -109,13 +109,13 @@ class manager():
 		return(data)
 	#def _jsonFromContents
 
-	def _readSourcesFile(self,sourcesF):
+	def readSourcesFile(self,sourcesF):
 		data={}
 		if os.path.exists(sourcesF):
 			fcontent=self._getFileContent(sourcesF)
 			data=self._jsonFromContents(sourcesF,fcontent)
 		return(data)
-	#def _readSourcesFile
+	#def readSourcesFile
 	
 	def _readSourcesDir(self,dirF):
 		repos={}
@@ -123,7 +123,7 @@ class manager():
 			for f in os.scandir(dirF):
 				if f.is_dir():
 					self._readSourcesDir(f.path)
-				data=self._readSourcesFile(f.path)
+				data=self.readSourcesFile(f.path)
 				for dataurl,dataitems in data.items():
 					if len(repos.get(dataurl,''))==0:
 						repos.update({dataurl:dataitems})
@@ -132,43 +132,51 @@ class manager():
 
 	def _readJsonFile(self,jsonF):
 		data={}
-		if os.path.exists(jsonF):
-			try:
-				jcontent=json.loads(self._getFileContent(jsonF))
-			except Exception as e:
-				self._debug("Err: {}".format(e))
-				return(data)
-			for reponame,repodata in jcontent.items():
-				repolines=repodata.get("repos")
-				for fline in repolines:
-					dataline=self._formatRepoLine(fline)
-					for url,urldata in dataline.items():
-						if url not in data.keys():
-							data[url]={}
-						for release in urldata.keys():
-							if release not in data[url].keys():
-								data[url][release]={}
-							urldata[release]=self._mergeData(urldata[release],data[url][release])
-							data[url][release]=urldata[release]
-				for url,urldata in data.items():
-					for release,releasedata in urldata.items():
-						releasedata["desc"]=repodata.get("desc","")
-						releasedata["file"]=self._getSourcesPathFromJson(jsonF)
-						name=reponame
-						if reponame.split("_")[0]==os.path.basename(releasedata["file"]):
-							if len(reponame.split("_"))>1:
-								name="{0}_{1}".format(reponame.split("_")[0],os.path.basename(url.strip("/").split("/")[-1]))
-						releasedata["name"]=name
-						releasedata["available"]=True
-						if url.startswith("http://mirror/"):
-							releasedata["available"]=self.isMirrorEnabled()
+		if os.path.exists(jsonF)==False:
+			self._debug("{} not found!!!".format(jsonF))
+			return(data)
+		try:
+			jcontent=json.loads(self._getFileContent(jsonF))
+		except Exception as e:
+			self._debug("Err: {}".format(e))
+			return(data)
+		for reponame,repodata in jcontent.items():
+			repolines=repodata.get("repos",[])
+			for fline in repolines:
+				dataline=self._formatRepoLine(fline)
+				for url,urldata in dataline.items():
+					if url not in data.keys():
+						data[url]={}
+					for release in urldata.keys():
+						if release not in data[url].keys():
+							data[url][release]={}
+						urldata[release]=self._mergeData(urldata[release],data[url][release])
+						data[url][release]=urldata[release]
+			for url,urldata in data.items():
+				for release,releasedata in urldata.items():
+					releasedata["desc"]=repodata.get("desc","")
+					releasedata["file"]=self._getSourcesPathFromJson(jsonF)
+					name=reponame
+					if reponame.split("_")[0]==os.path.basename(releasedata["file"]):
+						if len(reponame.split("_"))>1:
+							name="{0}_{1}".format(reponame.split("_")[0],os.path.basename(url.strip("/").split("/")[-1]))
+					releasedata["name"]=name
+					releasedata["available"]=True
+					if url.startswith("http://mirror/"):
+						releasedata["available"]=self.isMirrorEnabled()
 		return(data)
 	#def _readJsonFile
+
+	def writeJsonFile(self,file,content):
+		with open(file,'w') as f:
+			json.dump(content,f,indent=4)
+	#def writeJsonFile
 
 	def _readManagerDir(self,dirF):
 		repos={}
 		if os.path.isdir(dirF):
 			for f in os.scandir(dirF):
+				print(f.path)
 				if os.path.isdir(f.path):
 					repos.update(self._readManagerDir(f.path))
 				else:
@@ -182,7 +190,7 @@ class manager():
 	def _writeJsonFromSources(self,file,content):
 		if len(content)<=0:
 			return
-		jfile=self._getJsonPathFromSources(file,content)
+		jfile=self.getJsonPathFromSources(file,content)
 		self._debug("Json File: {}".format(jfile))
 		jcontent={}
 		newcontent=[]
@@ -212,8 +220,7 @@ class manager():
 			release=list(data[url].keys())[0]
 			name=data[url][release].get("name",os.path.basename(file)).replace(".json","")
 			jcontent[name]={"changed":False,"desc":"","enabled":True,"repos":content}
-		with open(jfile,'w') as f:
-			json.dump(jcontent,f,indent=4)
+		self.writeJsonFile(jfile,jcontent)
 	#def _writeJsonFromSources
 
 	def _getDefaultJsonFromDefaultRepo(self,repoline):
@@ -243,11 +250,19 @@ class manager():
 			file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".list"))
 			if os.path.exists(file)==False:
 				for f in os.scandir(self.sourcesDir):
-					if os.path.basename(f).lower()==os.path.basename(file).lower():
+					if f.name.lower()==os.path.basename(file).lower():
 						file=f.path
 						break
 		return(file)
 	#def _getSourcesPathFromJson
+
+	def getSourcesPathFromPpa(self,ppa):
+		sppa="".join(ppa.split(":")[1:]).split("/")
+		for f in os.scandir(self.sourcesDir):
+			if sppa[0] in f.name and sppa[1] in f.name and f.name.count("-")>=3:
+				file=f.path
+		return(file)
+	#def getSourcesPathFromPpa
 
 	def sortContents(self,contents):
 		sortcontent=[]
@@ -352,7 +367,7 @@ class manager():
 					f.write(line)
 	#def _writeSourceFile
 
-	def _getJsonPathFromSources(self,file,content,defaultRepoName=""):
+	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
 		if file.endswith(".list") and (file!=self.sourcesFile):
 			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json")))
 			if os.path.exists(jfile)==False:
@@ -364,7 +379,7 @@ class manager():
 			jfile=self._getDefaultJsonFromDefaultRepo(content[0])
 			jfile=os.path.join(self.managerDir,jfile)
 		return(jfile)
-	#def _getJsonPathFromSources
+	#def getJsonPathFromSources
 
 	def _searchUrlNameDescFromJson(self,url,managerRepos):
 		name=url
@@ -373,14 +388,17 @@ class manager():
 			if repo==url:
 				for release,data in managerRepos[url].items():
 					name="{0}".format(data.get("name",""))
-					if name=="":
+					if len(name)<=0:
 						name="{0}_{1}".format(data.get("file",""),url.strip("/").split("/")[-1])
 					desc=data.get("desc","")
+					print(url)
+					print(name)
+					print("****")
 					break
 				if name!=url:
 					break
 		return(name,desc)
-	#def _searchUrlName
+	#def _searchUrlNameDescFromJson
 
 	def _compareRepos(self,source,compare):
 		enabled=True
@@ -397,7 +415,7 @@ class manager():
 
 	def getRepos(self):
 		repos={}
-		sourcesRepo=self._readSourcesFile(self.sourcesFile)
+		sourcesRepo=self.readSourcesFile(self.sourcesFile)
 		extraRepos=self._readSourcesDir(self.sourcesDir)
 		extraRepos.update(sourcesRepo)
 		managerRepos=self._readManagerDir(self.managerDir)
