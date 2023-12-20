@@ -89,10 +89,17 @@ class manager():
 		return(fcontent)
 	#def _getFileContent
 
-	def _jsonFromContents(self,file,contents):
+	def _getSourcesFormat(self,contents):
+		sourceFormat=0
+		if len(contents)>0:
+			strcontents="\n".join(contents)
+			if "Types" in strcontents.split(":"):
+				sourceFormat=1
+		return(sourceFormat)
+	#def _getSourcesFormat
+
+	def _getRepoContents(self,file,contents):
 		data={}
-		if isinstance(contents,str):
-			contents=contents.split("\n")
 		for fline in contents:
 			fline=self._sanitizeString(fline)
 			if fline.startswith("deb") and ":/" in fline:
@@ -106,6 +113,46 @@ class manager():
 						urldata[release]=self._mergeData(urldata[release],data[url][release])
 						data[url][release]=urldata[release]
 					data[url]=self._sortRepoComponents(data[url])
+		return(data)
+	#def _getRepoContents
+
+	def _getRepoType1Contents(self,file,contents):
+		repolines=[]
+		cont=0
+		for fline in contents:
+			fline=self._sanitizeString(fline)
+			(key,data)=fline.split(":")[0],":".join(fline.split(":")[1:])
+			if key.lower()=="types":
+				cont+=1
+				types=data
+			if key.lower()=="uris":
+				cont+=1
+				url=data
+			if key.lower()=="suites":
+				cont+=1
+				releases=data
+			if key.lower()=="components":
+				cont+=1
+				components=data
+			if key.lower()=="architectures":
+				architectures=data
+			if key.lower()=="signed-by":
+				signed=" [signed-by={}] ".format(self._sanitizeString(data))
+		if cont==4:
+			for release in releases.split():
+				repolines.append("{0}{1}{2} {3} {4}".format(types,signed,url,release,components))
+		return(self._getRepoContents(file,repolines))
+	#def _getRepoContents
+
+	def _jsonFromContents(self,file,contents):
+		data={}
+		if isinstance(contents,str):
+			contents=contents.split("\n")
+		sourcesFormat=self._getSourcesFormat(contents)
+		if sourcesFormat==0:
+			data=self._getRepoContents(file,contents)
+		if sourcesFormat==1:
+			data=self._getRepoType1Contents(file,contents)
 		return(data)
 	#def _jsonFromContents
 
@@ -173,6 +220,9 @@ class manager():
 	#def writeJsonFile
 
 	def _writeJsonFromSources(self,file,content):
+		sourcesFormat=self._getSourcesFormat(content)
+		if sourcesFormat==1:
+			content=self._getRepoType1Contents(file,content)
 		if len(content)<=0:
 			return
 		jfile=self.getJsonPathFromSources(file,content)
@@ -208,8 +258,8 @@ class manager():
 			for line in sortcontent:
 				line=self._sanitizeString(line)
 				if len(line)>0:
-					if not line.startswith("deb") and line[0]!="#":
-						line="deb {}".format(line)
+				#	if not line.startswith("deb") and line[0]!="#":
+				#		line="deb {}".format(line)
 					if line.endswith("\n")==False:
 						line+="\n"
 					f.write(line)
@@ -262,12 +312,17 @@ class manager():
 		if os.path.dirname(file)==os.path.join(self.managerDir,"default"):
 			file=self.sourcesFile
 		else:
-			file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".list"))
+			files=[os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".list")),os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".sources"))]
+			for file in files:
+				if os.path.exists(file):
+					 break
 			if os.path.exists(file)==False:
-				for f in os.scandir(self.sourcesDir):
-					if f.name.lower()==os.path.basename(file).lower():
-						file=f.path
-						break
+				file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".list",".sources"))
+				if os.path.exists(file)==False:
+					for f in os.scandir(self.sourcesDir):
+						if f.name.lower()==os.path.basename(file).lower():
+							file=f.path
+							break
 		return(file)
 	#def _getSourcesPathFromJson
 
@@ -369,8 +424,8 @@ class manager():
 	#def _sortJsonRepos
 
 	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
-		if file.endswith(".list") and (file!=self.sourcesFile):
-			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json")))
+		if (file.endswith(".list") or file.endswith(".sources")) and (file!=self.sourcesFile):
+			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json").replace(".sources",".json")))
 			if os.path.exists(jfile)==False:
 				for f in os.scandir(self.managerDir):
 					if os.path.basename(f).lower()==os.path.basename(jfile).lower():
@@ -500,6 +555,15 @@ class manager():
 			file=self._getSourcesPathFromJson(file)
 		if len(file)>0:
 			fcontent=self._getFileContent(file)
+
+			if self._getSourcesFormat(fcontent.split("\n"))==1:
+				tmpcontent=self._getRepoType1Contents(file,fcontent.split("\n"))
+				tmprepos=[]
+				for release in (tmpcontent[url].keys()):
+					raw=tmpcontent[url][release].get("raw","")
+					if len(raw)>0:
+						tmprepos.append(raw)
+				fcontent="\n".join(tmprepos)
 			newcontent=[]
 			delcontent=[]
 			for line in fcontent.split("\n"):
