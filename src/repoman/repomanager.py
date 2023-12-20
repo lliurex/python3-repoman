@@ -172,20 +172,6 @@ class manager():
 			json.dump(content,f,indent=4)
 	#def writeJsonFile
 
-	def _readManagerDir(self,dirF):
-		repos={}
-		if os.path.isdir(dirF):
-			for f in os.scandir(dirF):
-				if os.path.isdir(f.path):
-					repos.update(self._readManagerDir(f.path))
-				else:
-					data=self._readJsonFile(f.path)
-					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
-							repos.update({dataurl:dataitems})
-		return(repos)
-	#def _readManagerDir(self,dirF):
-
 	def _writeJsonFromSources(self,file,content):
 		if len(content)<=0:
 			return
@@ -204,14 +190,7 @@ class manager():
 			self._debug("{}".format(e))
 		if len(jcontent)>0:
 			for name,namedata in jcontent.items():
-				repos=namedata.get("repos")
-				sortrepos=[]
-				for repo in repos:
-					raw=self._formatRepoLine(repo).get("raw","")
-					if len(raw)>0:
-						sortrepos.append(raw.replace("#",""))
-
-				repos=list(set(sortrepos+content))
+				repos=list(set(self._formatReposForJson(namedata.get("repos"))+content))
 				namedata["repos"]=repos
 		else:
 			data=self._formatRepoLine(content[0],file)
@@ -221,6 +200,43 @@ class manager():
 			jcontent[name]={"changed":False,"desc":"","enabled":True,"repos":content}
 		self.writeJsonFile(jfile,jcontent)
 	#def _writeJsonFromSources
+
+	def _writeSourceFile(self,file,content):
+		#Sort content
+		sortcontent=self.sortContents(content)
+		with open(file,"w") as f:
+			for line in sortcontent:
+				line=self._sanitizeString(line)
+				if len(line)>0:
+					if not line.startswith("deb") and line[0]!="#":
+						line="deb {}".format(line)
+					if line.endswith("\n")==False:
+						line+="\n"
+					f.write(line)
+	#def _writeSourceFile
+
+	def _readManagerDir(self,dirF):
+		repos={}
+		if os.path.isdir(dirF):
+			for f in os.scandir(dirF):
+				if os.path.isdir(f.path):
+					repos.update(self._readManagerDir(f.path))
+				else:
+					data=self._readJsonFile(f.path)
+					for dataurl,dataitems in data.items():
+						if len(repos.get(dataurl,''))==0:
+							repos.update({dataurl:dataitems})
+		return(repos)
+	#def _readManagerDir(self,dirF):
+
+	def _formatReposForJson(self,repos):
+		sortrepos=[]
+		for repo in repos:
+			raw=self._formatRepoLine(repo).get("raw","")
+			if len(raw)>0:
+				sortrepos.append(raw.replace("#",""))
+		return(sortrepos)
+	#def _formatReposForJson
 
 	def _getDefaultJsonFromDefaultRepo(self,repoline):
 		file=""
@@ -295,7 +311,7 @@ class manager():
 		key=list(sortrepos.keys())[0]
 		file=sortrepos[key]["file"]
 		name=sortrepos[key]["name"]
-		val=3
+		val=ord(name[0].lower())
 		if file==self.sourcesFile:
 			if "mirror" in name.lower():
 				val=0
@@ -315,19 +331,11 @@ class manager():
 		return(sortrepos)
 	#def _sortRepos
 	
-	def _sortReposByName(self,repos):
-		sortrepos={}
-		for repo in sorted(repos.items(),key=self._sortRepoByName):
-			(name,data)=repo
-			sortrepos[name]=data
-		return(sortrepos)
-	#def _sortReposByName
-
 	def _sortRepoByName(self,repos):
 		sortrepos=repos[1]
 		key=repos[0]
 		file=sortrepos["file"]
-		val=3
+		val=ord(key[0].lower())
 		if file==self.sourcesFile:
 			if "mirror" in key.lower():
 				val=0
@@ -337,6 +345,14 @@ class manager():
 				val=2
 		return(val)
 	#def _sortRepoByName
+
+	def _sortReposByName(self,repos):
+		sortrepos={}
+		for repo in sorted(repos.items(),key=self._sortRepoByName):
+			(name,data)=repo
+			sortrepos[name]=data
+		return(sortrepos)
+	#def _sortReposByName
 
 	def sortJsonRepos(self,repos):
 		jsonrepos={}
@@ -351,20 +367,6 @@ class manager():
 					jsonrepos[name]={"desc":desc,"enabled":releasedata.get("enabled",False),"file":file,"available":available}
 		return(self._sortReposByName(jsonrepos))
 	#def _sortJsonRepos
-
-	def _writeSourceFile(self,file,content):
-		#Sort content
-		sortcontent=self.sortContents(content)
-		with open(file,"w") as f:
-			for line in sortcontent:
-				line=self._sanitizeString(line)
-				if len(line)>0:
-					if not line.startswith("deb") and line[0]!="#":
-						line="deb {}".format(line)
-					if line.endswith("\n")==False:
-						line+="\n"
-					f.write(line)
-	#def _writeSourceFile
 
 	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
 		if file.endswith(".list") and (file!=self.sourcesFile):
@@ -676,13 +678,17 @@ class manager():
 	#def chkPinning
 
 	def reversePinning(self,file=""):
+		keys=["Package","Pin","Pin-Priority"]
 		if len(file)<=0:
 			file="/etc/apt/preferences.d/lliurex-pinning"
-		fcontent=self._getFileContent(file)
-		keys=["Package","Pin","Pin-Priority"]
+		sfile=file
+		if os.path.exists(file)==False:
+			sfile="/usr/share/first-aid-kit/rsrc/lliurex-pinning"
+			keys=[]
+		fcontent=self._getFileContent(sfile)
 		content=[]
 		for line in fcontent.split("\n"):
-			raw=line
+			raw=line.strip()
 			if ":" in line:
 				raw=line.replace("#","")
 				if raw.strip().split(":")[0] in keys:
