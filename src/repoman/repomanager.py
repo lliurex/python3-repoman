@@ -176,7 +176,6 @@ class manager():
 		repos={}
 		if os.path.isdir(dirF):
 			for f in os.scandir(dirF):
-				print(f.path)
 				if os.path.isdir(f.path):
 					repos.update(self._readManagerDir(f.path))
 				else:
@@ -391,9 +390,6 @@ class manager():
 					if len(name)<=0:
 						name="{0}_{1}".format(data.get("file",""),url.strip("/").split("/")[-1])
 					desc=data.get("desc","")
-					print(url)
-					print(name)
-					print("****")
 					break
 				if name!=url:
 					break
