@@ -535,6 +535,9 @@ class manager():
 				if name.replace(" ","").strip().lower()==releasedata.get("name","").replace(" ","").strip().lower():
 					ret={repo:repos[repo]}
 					break
+				elif name.replace(" ","").strip().lower() == releasedata.get("name","").replace(" ","").strip().lower().split(".list")[0].split(".sources")[0]:
+					ret={repo:repos[repo]}
+					break
 			if len(ret)>0:
 				break
 		return(ret)
