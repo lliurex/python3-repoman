@@ -41,19 +41,19 @@ class manager():
 	def _formatRepoLine(self,repoline,file=""):
 		data={}
 		repoline=self._sanitizeString(repoline)
-		urlType=repoline.split(":/")[0].split(" ")[-1]
-		repoType=repoline.split(":/")[0].split(" ")[0]
+		urlType=repoline.split(":/",1)[0].split(" ")[-1]
+		repoType=repoline.split(":/",1)[0].split(" ")[0]
 		if ":/" not in repoline:
 			return(data)
-		repoUrl="{}:/{}".format(urlType,repoline.split(":/")[1].split(" ")[0])
+		repoUrl="{}:/{}".format(urlType,repoline.split(":/",1)[1].split(" ")[0])
 		if len(repoUrl)>0:
-			repoRelease="{}".format(repoline.split(":/")[1].split(" ")[1])
+			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
 				if repoUrl not in data.keys():
 					data[repoUrl]={}
 				if repoRelease not in data[repoUrl].keys():
 					data[repoUrl][repoRelease]={}
-				repoComponents=list(set(repoline.split(":/")[1].split(" ")[2:]))
+				repoComponents=list(set(repoline.split(":/",1)[1].split(" ")[2:]))
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
 				repoComponents.sort()
@@ -71,7 +71,7 @@ class manager():
 		sourceComponents.sort()
 		dest["components"]=list(set(destComponents+sourceComponents))
 		dest["components"].sort()
-		raw=dest.get("raw","").split(":/")
+		raw=dest.get("raw","").split(":/",1)
 		if len(raw)==2:
 			rawline="{0}:/{1} {2}".format(raw[0]," ".join(raw[1].split(" ")[:2])," ".join(dest["components"]))
 			dest["raw"]=rawline
