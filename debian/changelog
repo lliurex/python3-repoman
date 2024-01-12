@@ -1,3 +1,9 @@
+python3-repoman (1.0) jammy; urgency=medium
+
+  * Stable release
+
+ -- Juanma1980 <juanma1980@gmail.com>  Fri, 12 Jan 2024 08:30:36 +0100
+
 python3-repoman (0.1) jammy; urgency=medium
 
   * Initial release. 
