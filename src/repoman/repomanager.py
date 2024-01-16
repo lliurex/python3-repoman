@@ -17,7 +17,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
-		self.dbg=True
+		self.dbg=False
 	#def __init__
 	
 	def _debug(self,msg):
