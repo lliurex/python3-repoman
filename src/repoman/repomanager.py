@@ -17,7 +17,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
-		self.dbg=True
+		self.dbg=False
 	#def __init__
 	
 	def _debug(self,msg):
@@ -41,19 +41,19 @@ class manager():
 	def _formatRepoLine(self,repoline,file=""):
 		data={}
 		repoline=self._sanitizeString(repoline)
-		urlType=repoline.split(":/")[0].split(" ")[-1]
-		repoType=repoline.split(":/")[0].split(" ")[0]
+		urlType=repoline.split(":/",1)[0].split(" ")[-1]
+		repoType=repoline.split(":/",1)[0].split(" ")[0]
 		if ":/" not in repoline:
 			return(data)
-		repoUrl="{}:/{}".format(urlType,repoline.split(":/")[1].split(" ")[0])
+		repoUrl="{}:/{}".format(urlType,repoline.split(":/",1)[1].split(" ")[0])
 		if len(repoUrl)>0:
-			repoRelease="{}".format(repoline.split(":/")[1].split(" ")[1])
+			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
 				if repoUrl not in data.keys():
 					data[repoUrl]={}
 				if repoRelease not in data[repoUrl].keys():
 					data[repoUrl][repoRelease]={}
-				repoComponents=list(set(repoline.split(":/")[1].split(" ")[2:]))
+				repoComponents=list(set(repoline.split(":/",1)[1].split(" ")[2:]))
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
 				repoComponents.sort()
@@ -71,7 +71,7 @@ class manager():
 		sourceComponents.sort()
 		dest["components"]=list(set(destComponents+sourceComponents))
 		dest["components"].sort()
-		raw=dest.get("raw","").split(":/")
+		raw=dest.get("raw","").split(":/",1)
 		if len(raw)==2:
 			rawline="{0}:/{1} {2}".format(raw[0]," ".join(raw[1].split(" ")[:2])," ".join(dest["components"]))
 			dest["raw"]=rawline
@@ -170,10 +170,11 @@ class manager():
 			for f in os.scandir(dirF):
 				if f.is_dir():
 					self._readSourcesDir(f.path)
-				data=self.readSourcesFile(f.path)
-				for dataurl,dataitems in data.items():
-					if len(repos.get(dataurl,''))==0:
-						repos.update({dataurl:dataitems})
+				if f.path.endswith(".list") or f.path.endswith(".sources"):
+					data=self.readSourcesFile(f.path)
+					for dataurl,dataitems in data.items():
+						if len(repos.get(dataurl,''))==0:
+							repos.update({dataurl:dataitems})
 		return(repos)
 	#def _readSourcesDir
 
@@ -214,9 +215,10 @@ class manager():
 		return(data)
 	#def _readJsonFile
 
-	def writeJsonFile(self,file,content):
-		with open(file,'w') as f:
-			json.dump(content,f,indent=4)
+	def writeJsonFile(self,jfile,content):
+		if os.path.isdir(os.path.dirname(jfile))==True:
+			with open(jfile,'w') as f:
+				json.dump(content,f,indent=4)
 	#def writeJsonFile
 
 	def _writeJsonFromSources(self,file,content):
@@ -424,6 +426,7 @@ class manager():
 	#def _sortJsonRepos
 
 	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
+		jfile=""
 		if (file.endswith(".list") or file.endswith(".sources")) and (file!=self.sourcesFile):
 			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json").replace(".sources",".json")))
 			if os.path.exists(jfile)==False:
@@ -462,6 +465,8 @@ class manager():
 		elif len(set(set(source)-set(compare)))>0:
 			enabled=False
 		elif len(set(set(compare)-set(source)))>0:
+			enabled=False
+		elif len(compare)==0 and len(source)==0:
 			enabled=False
 		return enabled
 	#def _compareRepos
