@@ -8,8 +8,6 @@ import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from rebost import store
-from bs4 import BeautifulSoup
-import re
 
 
 class manager():
