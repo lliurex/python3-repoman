@@ -1,3 +1,9 @@
+python3-repoman (1.2) jammy; urgency=medium
+
+  * Remove old code
+
+ -- Juanma1980 <juanma1980@gmail.com>  Tue, 06 Feb 2024 11:53:41 +0100
+
 python3-repoman (1.1.1) jammy; urgency=medium
 
   * Stable release
