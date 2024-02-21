@@ -785,8 +785,10 @@ class manager():
 	#def isMirrorEnabled
 	
 	def updateRepos(self):
-		rebost=store.client()
-		rebost.update()
+		cmd=["apt","update"]
+		subprocess.run(cmd)
+		#rebost=store.client()
+		#rebost.update()
 #def class manager
 
 class RepoManager():
