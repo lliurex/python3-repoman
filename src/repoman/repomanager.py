@@ -45,7 +45,7 @@ class manager():
 		if ":/" not in repoline:
 			return(data)
 		repoUrl="{}:/{}".format(urlType,repoline.split(":/",1)[1].split(" ")[0])
-		if len(repoUrl)>0:
+		if len(repoUrl)>0 and repoline.split(":/",1)[1].strip().count(" ") > 0:
 			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
 				if repoUrl not in data.keys():
