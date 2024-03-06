@@ -16,7 +16,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
-		self.dbg=False
+		self.dbg=True
 	#def __init__
 	
 	def _debug(self,msg):
@@ -549,6 +549,7 @@ class manager():
 
 	def disableRepoByName(self,name):
 		repo=self._getRepoByName(name)
+		self._debug("Disabling repo {}".format(repo.keys()))
 		repos=[]
 		file=""
 		url=""
@@ -793,6 +794,28 @@ class manager():
 			rebost.update()
 		except:
 			pass
+	#def updateRepos
+
+	def disableAll(self):
+		repos=[]
+		for repo,data in self.getRepos().items():
+			for reponame,repodata in data.items():
+				if reponame not in repos:
+					repos.append(repodata.get("name"))
+		for repo in repos:
+			if len(repo)>0:
+				self.disableRepoByName(repo)
+	#def disableAll
+
+	def enableDefault(self):
+		for f in os.scandir(os.path.join(self.managerDir,"default")):
+			if f.name.lower().startswith("lliurex") and "mirror" not in f.name.lower():
+				data=self._readJsonFile(f.path).popitem()[1].popitem()[1]
+				self._debug("Default: {}".format(data["name"]))
+				self.enableRepoByName(data["name"])
+				break
+	#def enableDefault
+		
 #def class manager
 
 class RepoManager():
