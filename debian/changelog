@@ -1,3 +1,9 @@
+python3-repoman (1.2.2) jammy; urgency=medium
+
+  * Add reset repositories to default
+
+ -- Juanma1980 <juanma1980@gmail.com>  Wed, 06 Mar 2024 13:10:37 +0100
+
 python3-repoman (1.2.1-2lliurex23) jammy; urgency=medium
 
   * Remove old code
