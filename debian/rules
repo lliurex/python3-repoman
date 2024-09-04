@@ -8,7 +8,7 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-export PYBUILD_NAME=python3-repoman
+export PYBUILD_NAME=repoman
 
 %:
 	dh $@ --with python3 --buildsystem pybuild
