@@ -282,6 +282,7 @@ class manager():
 					data=self._readJsonFile(f.path)
 					for dataurl,dataitems in data.items():
 						if len(repos.get(dataurl,''))==0:
+							dataurl=dataurl.rstrip("/")
 							repos.update({dataurl:dataitems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
@@ -501,10 +502,10 @@ class manager():
 				available=self.isMirrorEnabled()
 			for release in managerRepos[url].keys():
 				managerRepos[url][release].update({"name":name,"desc":desc,"available":available})
-				if enabled==True:
-					components=list(set(managerRepos[url][release]["components"]))
-					extracomps=extraRepos.get(url,{}).get(release,{}).get("components",[])
-					enabled=self._compareRepos(components,extracomps)
+				#if enabled==True:
+				components=list(set(managerRepos[url][release]["components"]))
+				extracomps=extraRepos.get(url,{}).get(release,{}).get("components",[])
+				enabled=self._compareRepos(components,extracomps)
 				managerRepos[url][release].update({"enabled":enabled})
 			repos[url]=managerRepos[url]
 		sortrepos=self._sortRepos(repos)
@@ -671,7 +672,7 @@ class manager():
 
 	def _repositoryScrap(self,session,url):
 		repoUrl=[]
-		knowedReleases=["jammy","jammy-updates","jammy-security","stable","unstable"]
+		knowedReleases=["noble","noble-updates","noble-security","stable","unstable"]
 		self._debug("Reading {}".format(url))
 		dirlist=self._readServerDir(session,url)
 		if "dists/" in dirlist:
