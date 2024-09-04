@@ -62,7 +62,11 @@ class manager():
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
 				repoComponents.sort()
-				name="{0}_{1}".format(os.path.basename(file),repoUrl.strip("/").split("/")[-1])
+				url=repoUrl.strip("/").split("/")
+				if len(url)>2:
+					name="{0}.{1}".format(url[2],url[-1])
+				else:
+					name="{0}_{1}".format(os.path.basename(file),url[-1])
 				if "deb-src" in repoType:
 					repoRelease+="-src"
 				data[repoUrl][repoRelease]={"components":repoComponents,"file":file,"raw":repoline,"name":name,"desc":""}
