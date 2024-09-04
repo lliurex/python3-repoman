@@ -2,7 +2,10 @@
 import os,sys,shutil
 import json
 import subprocess
-from appconfig import appConfigN4d
+try:
+	from appconfig import appConfigN4d
+except:
+	appConfigN4d=None
 import requests
 import subprocess
 from requests.adapters import HTTPAdapter
@@ -774,15 +777,17 @@ class manager():
 	#def reversePinning
 
 	def isMirrorEnabled(self):
-		sw=True
-		n4d=appConfigN4d.appConfigN4d()
-		ret=n4d.n4dQuery("MirrorManager","is_mirror_available")
-		if isinstance(ret,dict):
-			if str(ret.get("status","-1"))!="0":
-				sw=False
-		elif isinstance(ret,str):
-			if ret!="Mirror available":
-				sw=False
+		sw=False
+		if appConfigN4d!=None:
+			sw=True
+			n4d=appConfigN4d.appConfigN4d()
+			ret=n4d.n4dQuery("MirrorManager","is_mirror_available")
+			if isinstance(ret,dict):
+				if str(ret.get("status","-1"))!="0":
+					sw=False
+			elif isinstance(ret,str):
+				if ret!="Mirror available":
+					sw=False
 		return(sw)
 	#def isMirrorEnabled
 	
