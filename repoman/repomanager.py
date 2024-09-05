@@ -212,7 +212,9 @@ class manager():
 			for url,urldata in data.items():
 				for release,releasedata in urldata.items():
 					releasedata["desc"]=repodata.get("desc","")
-					releasedata["file"]=self._getSourcesPathFromJson(jsonF)
+					releasedata["file"]=repodata.get("file","")
+					if releasedata.get("file","")=="":
+						releasedata["file"]=self._getSourcesPathFromJson(jsonF)
 					name=reponame
 					if reponame.split("_")[0]==os.path.basename(releasedata["file"]):
 						if len(reponame.split("_"))>1:
@@ -225,9 +227,15 @@ class manager():
 	#def _readJsonFile
 
 	def writeJsonFile(self,jfile,content):
+		sw=False
 		if os.path.isdir(os.path.dirname(jfile))==True:
-			with open(jfile,'w') as f:
-				json.dump(content,f,indent=4)
+			try:
+				with open(jfile,'w') as f:
+					json.dump(content,f,indent=4)
+				sw=True
+			except:
+				print("BIG FAIL: {} isn't a regular file".format(jfile))
+		return(sw)
 	#def writeJsonFile
 
 	def _writeJsonFromSources(self,file,content):
@@ -259,6 +267,12 @@ class manager():
 			release=list(data[url].keys())[0]
 			name=data[url][release].get("name",os.path.basename(file)).replace(".json","")
 			jcontent[name]={"changed":False,"desc":"","enabled":True,"repos":content}
+		if name in jcontent.keys():
+			jcontent[name].update({"file":file})
+		self._debug("Attempting to write {}".format(jfile))
+		#self._debug(content)
+		self._debug(jcontent)
+		self._debug("< EOF")
 		self.writeJsonFile(jfile,jcontent)
 	#def _writeJsonFromSources
 
@@ -302,6 +316,7 @@ class manager():
 
 	def _getDefaultJsonFromDefaultRepo(self,repoline):
 		file=""
+		self._debug("Get {} for searching".format(repoline))
 		if "http://lliurex.net" in repoline:
 			for f in os.listdir(os.path.join(self.managerDir,"default")):
 				if f.lower().startswith("lliurex_") and "mirror" not in f.lower():
@@ -437,6 +452,7 @@ class manager():
 
 	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
 		jfile=""
+		self._debug("Searching for {}".format(file))
 		if (file.endswith(".list") or file.endswith(".sources")) and (file!=self.sourcesFile):
 			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json").replace(".sources",".json")))
 			if os.path.exists(jfile)==False:
@@ -447,6 +463,10 @@ class manager():
 		elif file==self.sourcesFile:
 			jfile=self._getDefaultJsonFromDefaultRepo(content[0])
 			jfile=os.path.join(self.managerDir,jfile)
+		if jfile=="" or os.path.isdir(jfile)==True:
+			#Assign new file
+			fname="{}.json".format(content[0].split(":/")[-1].split(" ")[0].replace("/","_"))
+			jfile=os.path.join(self.managerDir,fname)
 		return(jfile)
 	#def getJsonPathFromSources
 
