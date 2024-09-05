@@ -13,7 +13,7 @@ from requests.packages.urllib3.util.retry import Retry
 try:
 	from rebost import store
 except:
-	rebost=None
+	store=None
 from bs4 import BeautifulSoup
 
 
