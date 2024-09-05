@@ -684,7 +684,7 @@ class manager():
 	def _releaseScrap(self,session,url):
 		knowedComponents=['main','universe','multiverse','contrib','non-free','restricted','oss','non-oss','partner','preschool']
 		components=[]
-		self._debug("Reading {}".format(url))
+		self._debug("Release Reading {}".format(url))
 		releaseDirs=self._readServerDir(session,url)
 		for component in releaseDirs:
 			component=component.replace('/','').lstrip()
@@ -696,8 +696,13 @@ class manager():
 
 	def _repositoryScrap(self,session,url):
 		repoUrl=[]
-		knowedReleases=["noble","noble-updates","noble-security","stable","unstable"]
-		self._debug("Reading {}".format(url))
+		cmd=["lsb_release","-c"]
+		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
+		codename=output.split(" ")[-1]
+		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
+		lastChance=url.rstrip("/").split("/")[-1]
+		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
+		self._debug("Repo Reading {}".format(url))
 		dirlist=self._readServerDir(session,url)
 		if "dists/" in dirlist:
 			url=os.path.join(url,"dists/")
@@ -708,7 +713,7 @@ class manager():
 		if url.endswith('/dists/'):
 			for repodir in dirlist:
 				release=repodir.replace('/','').lstrip()
-				if release in knowedReleases:
+				if release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
 					components=self._releaseScrap(session,urlRelease)
 					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists',''),release,' '.join(components)))
