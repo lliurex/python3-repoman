@@ -696,7 +696,10 @@ class manager():
 
 	def _repositoryScrap(self,session,url):
 		repoUrl=[]
-		knowedReleases=["noble","noble-updates","noble-security","stable","unstable"]
+		cmd=["lsb_release","-c"]
+		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
+		codename=output.split(" ")[-1]
+		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
 		self._debug("Reading {}".format(url))
 		dirlist=self._readServerDir(session,url)
 		if "dists/" in dirlist:
