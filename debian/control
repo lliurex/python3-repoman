@@ -11,7 +11,7 @@ Homepage: http://lliurex.net
 Package: python3-repoman
 Architecture: all
 Depends: python3
-Replaces: python3-repomanager,n4d-repomanager
+Replaces: python3-repomanager,n4d-repomanager,python3-qtextrawidgets
 Conflicts: python3-repomanager,n4d-repomanager
 Provides: python3-repomanager,n4d-repomanager
 Breaks: repoman(<=2.9)
