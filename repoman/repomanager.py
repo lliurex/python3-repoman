@@ -833,6 +833,9 @@ class manager():
 				rebost.update()
 			except:
 				pass
+		else:
+			cmd=["apt","update"]
+			subprocess.run(cmd)
 	#def updateRepos
 
 	def disableAll(self):
