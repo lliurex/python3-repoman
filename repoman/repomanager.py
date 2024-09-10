@@ -54,6 +54,8 @@ class manager():
 		if len(repoUrl)>0 and repoline.split(":/",1)[1].strip().count(" ") > 0:
 			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
+				if repoUrl[-1]!="/":
+					repoUrl+="/"
 				if repoUrl not in data.keys():
 					data[repoUrl]={}
 				if repoRelease not in data[repoUrl].keys():
@@ -202,6 +204,8 @@ class manager():
 			for fline in repolines:
 				dataline=self._formatRepoLine(fline)
 				for url,urldata in dataline.items():
+					if url.endswith("/")==False:
+						url+="/"
 					if url not in data.keys():
 						data[url]={}
 					for release in urldata.keys():
@@ -298,10 +302,11 @@ class manager():
 					repos.update(self._readManagerDir(f.path))
 				else:
 					data=self._readJsonFile(f.path)
-					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
-							dataurl=dataurl.rstrip("/")
-							repos.update({dataurl:dataitems})
+					for dataUrl,dataItems in data.items():
+						if len(repos.get(dataUrl,''))==0:
+							if dataUrl[-1]!="/":
+								dataUrl+="/"
+							repos.update({dataUrl:dataItems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
 
