@@ -305,7 +305,7 @@ class manager():
 						if len(repos.get(repoUrl,''))==0:
 							if repoUrl[-1]!="/":
 								repoUrl+="/"
-							repos.update({repoUrl:dataItems})
+							repos.update({repoUrl:repoItems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
 
