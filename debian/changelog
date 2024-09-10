@@ -1,6 +1,9 @@
-python3-repoman (1.2.2-0lliurex25) noble; urgency=medium
+python3-repoman (1.2.3-0lliurex25) noble; urgency=medium
 
   * Noble release
+  * Force url slash at end
+  * When adding repos try to honour indicate release even if is wrong
+  *  Ex: On noble if adding a jammy repo
 
  -- Juanma1980 <juanma1980@gmail.com>  Wed, 04 Sep 2024 10:39:59 +0200
 
