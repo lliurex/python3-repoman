@@ -54,6 +54,8 @@ class manager():
 		if len(repoUrl)>0 and repoline.split(":/",1)[1].strip().count(" ") > 0:
 			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
+				if repoUrl[-1]!="/":
+					repoUrl+="/"
 				if repoUrl not in data.keys():
 					data[repoUrl]={}
 				if repoRelease not in data[repoUrl].keys():
@@ -202,6 +204,8 @@ class manager():
 			for fline in repolines:
 				dataline=self._formatRepoLine(fline)
 				for url,urldata in dataline.items():
+					if url.endswith("/")==False:
+						url+="/"
 					if url not in data.keys():
 						data[url]={}
 					for release in urldata.keys():
@@ -270,7 +274,6 @@ class manager():
 		if name in jcontent.keys():
 			jcontent[name].update({"file":file})
 		self._debug("Attempting to write {}".format(jfile))
-		#self._debug(content)
 		self._debug(jcontent)
 		self._debug("< EOF")
 		self.writeJsonFile(jfile,jcontent)
@@ -278,9 +281,9 @@ class manager():
 
 	def _writeSourceFile(self,file,content):
 		#Sort content
-		sortcontent=self.sortContents(content)
+		sortContent=self.sortContents(content)
 		with open(file,"w") as f:
-			for line in sortcontent:
+			for line in sortContent:
 				line=self._sanitizeString(line)
 				if len(line)>0:
 				#	if not line.startswith("deb") and line[0]!="#":
@@ -298,10 +301,11 @@ class manager():
 					repos.update(self._readManagerDir(f.path))
 				else:
 					data=self._readJsonFile(f.path)
-					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
-							dataurl=dataurl.rstrip("/")
-							repos.update({dataurl:dataitems})
+					for repoUrl,repoItems in data.items():
+						if len(repos.get(repoUrl,''))==0:
+							if repoUrl[-1]!="/":
+								repoUrl+="/"
+							repos.update({repoUrl:dataItems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
 
