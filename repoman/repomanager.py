@@ -274,7 +274,6 @@ class manager():
 		if name in jcontent.keys():
 			jcontent[name].update({"file":file})
 		self._debug("Attempting to write {}".format(jfile))
-		#self._debug(content)
 		self._debug(jcontent)
 		self._debug("< EOF")
 		self.writeJsonFile(jfile,jcontent)
@@ -282,9 +281,9 @@ class manager():
 
 	def _writeSourceFile(self,file,content):
 		#Sort content
-		sortcontent=self.sortContents(content)
+		sortContent=self.sortContents(content)
 		with open(file,"w") as f:
-			for line in sortcontent:
+			for line in sortContent:
 				line=self._sanitizeString(line)
 				if len(line)>0:
 				#	if not line.startswith("deb") and line[0]!="#":
@@ -302,11 +301,11 @@ class manager():
 					repos.update(self._readManagerDir(f.path))
 				else:
 					data=self._readJsonFile(f.path)
-					for dataUrl,dataItems in data.items():
-						if len(repos.get(dataUrl,''))==0:
-							if dataUrl[-1]!="/":
-								dataUrl+="/"
-							repos.update({dataUrl:dataItems})
+					for repoUrl,repoItems in data.items():
+						if len(repos.get(repoUrl,''))==0:
+							if repoUrl[-1]!="/":
+								repoUrl+="/"
+							repos.update({repoUrl:dataItems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
 
