@@ -22,7 +22,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
-		self.dbg=True
+		self.dbg=False
 	#def __init__
 	
 	def _debug(self,msg):
@@ -139,6 +139,8 @@ class manager():
 			if key.lower()=="uris":
 				cont+=1
 				url=data
+				if url[-1]!="/":
+					url+="/"
 			if key.lower()=="suites":
 				cont+=1
 				releases=data
@@ -596,9 +598,9 @@ class manager():
 					break
 		if file.endswith(".json"):
 			file=self._getSourcesPathFromJson(file)
+
 		if len(file)>0:
 			fcontent=self._getFileContent(file)
-
 			if self._getSourcesFormat(fcontent.split("\n"))==1:
 				tmpcontent=self._getRepoType1Contents(file,fcontent.split("\n"))
 				tmprepos=[]
@@ -611,6 +613,7 @@ class manager():
 			delcontent=[]
 			for line in fcontent.split("\n"):
 				line=self._sanitizeString(line)
+				url=url.rstrip("/")
 				if (url.replace(" ","") not in line.replace(" ","")) and len(line)>0:
 					if line.startswith("deb")==False and line.startswith("#")==False:
 						line="deb {}".format(line)
