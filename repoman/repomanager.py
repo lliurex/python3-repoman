@@ -10,10 +10,6 @@ import requests
 import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-try:
-	from rebost import store
-except:
-	store=None
 from bs4 import BeautifulSoup
 
 
@@ -832,17 +828,11 @@ class manager():
 	#def isMirrorEnabled
 	
 	def updateRepos(self):
-		#cmd=["apt","update"]
-		#subprocess.run(cmd)
-		if store!=None:
-			rebost=store.client()
-			try:
-				rebost.update()
-			except:
-				pass
-		else:
-			cmd=["apt","update"]
+		cmd=["apt","update"]
+		try;
 			subprocess.run(cmd)
+		except Exception as e:
+			print("ERROR: {}".format(e))
 	#def updateRepos
 
 	def disableAll(self):
