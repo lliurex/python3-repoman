@@ -1,3 +1,9 @@
+python3-repoman (1.2.4) noble; urgency=medium
+
+  * Remove rebost integration
+
+ -- Juanma1980 <juanma1980@gmail.com>  Thu, 28 Nov 2024 11:04:34 +0100
+
 python3-repoman (1.2.3-0lliurex25) noble; urgency=medium
 
   * Noble release
