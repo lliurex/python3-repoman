@@ -829,7 +829,7 @@ class manager():
 	
 	def updateRepos(self):
 		cmd=["apt","update"]
-		try;
+		try:
 			subprocess.run(cmd)
 		except Exception as e:
 			print("ERROR: {}".format(e))
