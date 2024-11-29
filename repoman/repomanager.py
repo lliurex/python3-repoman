@@ -647,10 +647,14 @@ class manager():
 			file=self._getSourcesPathFromJson(file)
 		if len(file)>0:
 			newcontent=[]
+			matchUrl=url.replace(" ","").strip()
 			fcontent=self._getFileContent(file)
 			for line in fcontent.split("\n"):
-				if url.replace(" ","").strip() not in line.replace(" ","").strip() and len(line.strip())>0:
-					newcontent.append(line)
+				fLine=self._formatRepoLine(line)
+				lineMatch=list(fLine.keys())
+				if len(lineMatch)>0:
+					if not (matchUrl in  lineMatch[0]) and (len(lineMatch[0])>0):
+						newcontent.append(line)
 			newcontent.extend(repos)
 			self._writeSourceFile(file,newcontent)
 	#def enableRepoByName(self,name):
