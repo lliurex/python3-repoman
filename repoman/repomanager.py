@@ -170,6 +170,7 @@ class manager():
 		if os.path.exists(sourcesF):
 			fcontent=self._getFileContent(sourcesF)
 			data=self._jsonFromContents(sourcesF,fcontent)
+			print(data)
 		return(data)
 	#def readSourcesFile
 	
@@ -240,7 +241,7 @@ class manager():
 		return(sw)
 	#def writeJsonFile
 
-	def _writeJsonFromSources(self,file,content):
+	def _writeJsonFromSources(self,file,content,**kwargs):
 		sourcesFormat=self._getSourcesFormat(content)
 		if sourcesFormat==1:
 			content=self._getRepoType1Contents(file,content)
@@ -268,7 +269,9 @@ class manager():
 			url=list(data.keys())[0]
 			release=list(data[url].keys())[0]
 			name=data[url][release].get("name",os.path.basename(file)).replace(".json","")
-			jcontent[name]={"changed":False,"desc":"","enabled":True,"repos":content}
+			name=kwargs.get("name",name)
+			desc=kwargs.get("desc","")
+			jcontent[name]={"changed":False,"desc":desc,"enabled":True,"repos":content}
 		if name in jcontent.keys():
 			jcontent[name].update({"file":file})
 		self._debug("Attempting to write {}".format(jfile))
@@ -706,6 +709,7 @@ class manager():
 		cmd=["lsb_release","-c"]
 		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
 		codename=output.split(" ")[-1]
+		print("Codename: {}".format(codename))
 		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
 		lastChance=url.rstrip("/").split("/")[-1]
 		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
@@ -718,14 +722,17 @@ class manager():
 			return(repoUrl)
 		dirlist=self._readServerDir(session,url)
 		if url.endswith('/dists/'):
+			print("####3")
 			for repodir in dirlist:
 				release=repodir.replace('/','').lstrip()
 				if release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
 					components=self._releaseScrap(session,urlRelease)
-					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists',''),release,' '.join(components)))
+					print("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
+					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
 				else:
 					self._debug("{0} not found in {1}".format(repodir,knowedReleases))
+			print("####3>")
 		return repoUrl
 	#def _repositoryScrap
 
@@ -770,7 +777,7 @@ class manager():
 			jsonF=os.path.join(self.managerDir,"{}.json".format(name))
 			if len(fcontent)>0:
 				self._writeSourceFile(sourceF,fcontent)
-				self._writeJsonFromSources(sourceF,fcontent)
+				self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
 				ret=0
 		return(ret)
 	#def addRepo
