@@ -167,6 +167,7 @@ class manager():
 
 	def readSourcesFile(self,sourcesF):
 		data={}
+		self._debug("Read Sources {}".format(sourcesF))
 		if os.path.exists(sourcesF):
 			fcontent=self._getFileContent(sourcesF)
 			data=self._jsonFromContents(sourcesF,fcontent)
@@ -182,7 +183,7 @@ class manager():
 				if f.path.endswith(".list") or f.path.endswith(".sources"):
 					data=self.readSourcesFile(f.path)
 					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
+						if not dataurl in repos.keys():
 							repos.update({dataurl:dataitems})
 		return(repos)
 	#def _readSourcesDir
@@ -277,6 +278,7 @@ class manager():
 		self._debug(jcontent)
 		self._debug("< EOF")
 		self.writeJsonFile(jfile,jcontent)
+		return(jfile)
 	#def _writeJsonFromSources
 
 	def _writeSourceFile(self,file,content):
@@ -480,7 +482,7 @@ class manager():
 		for repo in managerRepos.keys():
 			if repo==url:
 				for release,data in managerRepos[url].items():
-					name="{0}".format(data.get("name",""))
+					name=data.get("name","")
 					if len(name)<=0:
 						name="{0}_{1}".format(data.get("file",""),url.strip("/").split("/")[-1])
 					desc=data.get("desc","")
@@ -746,6 +748,7 @@ class manager():
 		debparms=""
 		decompurl=url.split(":/")
 		if len(decompurl)>1:
+			beforAdd=self.getRepos()
 			data=decompurl[-1].split(" ")
 			if len(decompurl[0].split(" "))>1:
 				debparms="{} ".format(" ".join(decompurl[0].split(" ")[:-1]))
@@ -772,8 +775,16 @@ class manager():
 			jsonF=os.path.join(self.managerDir,"{}.json".format(name))
 			if len(fcontent)>0:
 				self._writeSourceFile(sourceF,fcontent)
-				self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
+				jfile=self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
 				ret=0
+			afterAdd=self.getRepos()
+			if len(beforAdd)==len(afterAdd):
+				if os.path.isfile(sourceF):
+					self._debug("Deleting {} (duplicated)".format(sourceF))
+					os.unlink(sourceF)
+				if os.path.isfile(jfile):
+					self._debug("Deleting {} (duplicated)".format(jfile))
+					os.unlink(jfile)
 		return(ret)
 	#def addRepo
 
