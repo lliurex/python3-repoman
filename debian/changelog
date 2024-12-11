@@ -1,3 +1,9 @@
+python3-repoman (1.2.4-0llx23) jammy; urgency=medium
+
+  * Sync with noble
+
+ -- Juanma1980 <juanma1980@gmail.com>  Mon, 09 Dec 2024 10:29:24 +0100
+
 python3-repoman (1.2.2) jammy; urgency=medium
 
   * Add reset repositories to default
