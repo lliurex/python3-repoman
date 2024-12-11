@@ -1,6 +1,7 @@
 python3-repoman (1.2.4-0llx23) jammy; urgency=medium
 
   * Sync with noble
+  * Honor name and desc when creating new lines
 
  -- Juanma1980 <juanma1980@gmail.com>  Mon, 09 Dec 2024 10:29:24 +0100
 
