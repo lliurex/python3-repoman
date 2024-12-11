@@ -170,7 +170,6 @@ class manager():
 		if os.path.exists(sourcesF):
 			fcontent=self._getFileContent(sourcesF)
 			data=self._jsonFromContents(sourcesF,fcontent)
-			print(data)
 		return(data)
 	#def readSourcesFile
 	
@@ -709,7 +708,6 @@ class manager():
 		cmd=["lsb_release","-c"]
 		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
 		codename=output.split(" ")[-1]
-		print("Codename: {}".format(codename))
 		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
 		lastChance=url.rstrip("/").split("/")[-1]
 		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
@@ -722,17 +720,14 @@ class manager():
 			return(repoUrl)
 		dirlist=self._readServerDir(session,url)
 		if url.endswith('/dists/'):
-			print("####3")
 			for repodir in dirlist:
 				release=repodir.replace('/','').lstrip()
 				if release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
 					components=self._releaseScrap(session,urlRelease)
-					print("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
 					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
 				else:
 					self._debug("{0} not found in {1}".format(repodir,knowedReleases))
-			print("####3>")
 		return repoUrl
 	#def _repositoryScrap
 
