@@ -747,6 +747,7 @@ class manager():
 		url=url.replace("deb ","")
 		debparms=""
 		decompurl=url.split(":/")
+		jfile=""
 		if len(decompurl)>1:
 			beforAdd=self.getRepos()
 			data=decompurl[-1].split(" ")
