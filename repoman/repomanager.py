@@ -772,8 +772,8 @@ class manager():
 					fcontent=["deb {0} {1}".format(url.replace('dists',''),' '.join(components))]
 				else:
 					fcontent=self._repositoryScrap(session,deburl)
-			sourceF=os.path.join(self.sourcesDir,"{}.list".format(name))
-			jsonF=os.path.join(self.managerDir,"{}.json".format(name))
+			sourceF=os.path.join(self.sourcesDir,"{}.list".format(name.replace(" ","_")))
+			jsonF=os.path.join(self.managerDir,"{}.json".format(name.replace(" ","_")))
 			if len(fcontent)>0:
 				self._writeSourceFile(sourceF,fcontent)
 				jfile=self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
