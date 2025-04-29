@@ -154,12 +154,13 @@ class manager():
 	#def _getRepoContents
 
 	def _translateListToSourceS(self,content):
+		pass
 
 	def _jsonFromContents(self,file,contents):
 		data={}
 		if isinstance(contents,str):
 			contents=contents.split("\n")
-		if self._isFormatSources(contents)==True
+		if self._isFormatSources(contents)==True:
 			data=self._getSourcesFileContents(file,contents)
 		else:
 			data=self._getRepoContents(file,contents)
@@ -287,7 +288,7 @@ class manager():
 		#or in the case that the file exists and it's a sources one then write new format
 		#REM TODO
 		old=True
-		if is.path.exists(file):
+		if os.path.exists(file):
 			oldContent=self._getreadSourcesFile(file)
 			old=self._isFormatSources(oldContent)
 		sortContent=self.sortContents(content)
