@@ -96,14 +96,14 @@ class manager():
 		return(fcontent)
 	#def _getFileContent
 
-	def _getSourcesFormat(self,contents):
-		sourceFormat=0
+	def _isFormatSources(self,contents):
+		sources=True
 		if len(contents)>0:
 			strcontents="\n".join(contents)
 			if "Types" in strcontents.split(":"):
-				sourceFormat=1
-		return(sourceFormat)
-	#def _getSourcesFormat
+				sources=False
+		return(sources)
+	#def _isFormatSources
 
 	def _getRepoContents(self,file,contents):
 		data={}
@@ -123,7 +123,7 @@ class manager():
 		return(data)
 	#def _getRepoContents
 
-	def _getRepoType1Contents(self,file,contents):
+	def _getSourcesFileContents(self,file,contents):
 		repolines=[]
 		cont=0
 		for fline in contents:
@@ -153,15 +153,16 @@ class manager():
 		return(self._getRepoContents(file,repolines))
 	#def _getRepoContents
 
+	def _translateListToSourceS(self,content):
+
 	def _jsonFromContents(self,file,contents):
 		data={}
 		if isinstance(contents,str):
 			contents=contents.split("\n")
-		sourcesFormat=self._getSourcesFormat(contents)
-		if sourcesFormat==0:
+		if self._isFormatSources(contents)==True
+			data=self._getSourcesFileContents(file,contents)
+		else:
 			data=self._getRepoContents(file,contents)
-		if sourcesFormat==1:
-			data=self._getRepoType1Contents(file,contents)
 		return(data)
 	#def _jsonFromContents
 
@@ -242,9 +243,8 @@ class manager():
 	#def writeJsonFile
 
 	def _writeJsonFromSources(self,file,content,**kwargs):
-		sourcesFormat=self._getSourcesFormat(content)
-		if sourcesFormat==1:
-			content=self._getRepoType1Contents(file,content)
+		if self._isFormatSources(content)==True:
+			content=self._getSourcesFileContents(file,content)
 		if len(content)<=0:
 			return
 		jfile=self.getJsonPathFromSources(file,content)
@@ -283,7 +283,16 @@ class manager():
 
 	def _writeSourceFile(self,file,content):
 		#Sort content
+		#Get format for content. If it's old format (aka .list) and file not exists
+		#or in the case that the file exists and it's a sources one then write new format
+		#REM TODO
+		old=True
+		if is.path.exists(file):
+			oldContent=self._getreadSourcesFile(file)
+			old=self._isFormatSources(oldContent)
 		sortContent=self.sortContents(content)
+		if old==True:
+			sortContent=self._translateListToSources(sortContent)
 		with open(file,"w") as f:
 			for line in sortContent:
 				line=self._sanitizeString(line)
@@ -598,11 +607,10 @@ class manager():
 					break
 		if file.endswith(".json"):
 			file=self._getSourcesPathFromJson(file)
-
 		if len(file)>0:
 			fcontent=self._getFileContent(file)
-			if self._getSourcesFormat(fcontent.split("\n"))==1:
-				tmpcontent=self._getRepoType1Contents(file,fcontent.split("\n"))
+			if self._isFormatSources(fcontent.split("\n"))==True:
+				tmpcontent=self._getSourcesFileContents(file,fcontent.split("\n"))
 				tmprepos=[]
 				for release in (tmpcontent[url].keys()):
 					raw=tmpcontent[url][release].get("raw","")
