@@ -153,8 +153,39 @@ class manager():
 		return(self._getRepoContents(file,repolines))
 	#def _getRepoContents
 
-	def _translateListToSourceS(self,content):
-		pass
+	def _translateListToSources(self,content):
+		trContent={}
+		suites=[]
+		for rawLine in content:
+			line=rawLine.split()
+			uri=line[1]
+			if uri not in trContent:
+				trContent[uri]={}
+			types=line[0]
+			if types not in trContent[uri]:
+				trContent[uri][types]={}
+			suite=line[2]
+			oldSuite=trContent[uri][types].get("Suites"," ")
+			suite="{} {}".format(suite,oldSuite).lstrip()
+			trContent[uri][types].update({"Suites":suite})
+		components=line[3:]
+		oldComponents=trContent[uri][types].get("Components"," ")
+		components.extend(oldComponents.split())
+		components=" ".join(set(components))
+		trContent[uri][types].update({"Components":components})
+		signed=""
+		if "Signed" not in trContent[uri][types]:
+			trContent[uri][types].update({"Signed-By":signed})
+		trLine=[]
+		for uri,repoData in trContent.items():
+			for type,data in repoData.items():
+				trLine.append("Types: {}\n".format(type))
+				trLine.append("URIs: {}\n".format(uri))
+				trLine.append("Suites: {}\n".format(data["Suites"]))
+				trLine.append("Components: {}\n".format(data["Components"]))
+				trLine.append("Signed-By: {}\n".format(data["Signed-By"]))
+		return(trLine)
+	#def _translateListToSources
 
 	def _jsonFromContents(self,file,contents):
 		data={}
@@ -289,11 +320,12 @@ class manager():
 		#REM TODO
 		old=True
 		if os.path.exists(file):
-			oldContent=self._getreadSourcesFile(file)
+			oldContent=self.readSourcesFile(file)
 			old=self._isFormatSources(oldContent)
 		sortContent=self.sortContents(content)
 		if old==True:
 			sortContent=self._translateListToSources(sortContent)
+			file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".list",".sources"))
 		with open(file,"w") as f:
 			for line in sortContent:
 				line=self._sanitizeString(line)
@@ -597,6 +629,8 @@ class manager():
 	def disableRepoByName(self,name):
 		repo=self._getRepoByName(name)
 		self._debug("Disabling repo {}".format(repo.keys()))
+		print("Disabling repo {}".format(repo.keys()))
+		print(repo)
 		repos=[]
 		file=""
 		url=""
@@ -612,6 +646,7 @@ class manager():
 			fcontent=self._getFileContent(file)
 			if self._isFormatSources(fcontent.split("\n"))==True:
 				tmpcontent=self._getSourcesFileContents(file,fcontent.split("\n"))
+				print(tmpcontent)
 				tmprepos=[]
 				for release in (tmpcontent[url].keys()):
 					raw=tmpcontent[url][release].get("raw","")
@@ -781,6 +816,8 @@ class manager():
 					fcontent=["deb {0} {1}".format(url.replace('dists',''),' '.join(components))]
 				else:
 					fcontent=self._repositoryScrap(session,deburl)
+			#REM
+			#FILENAME NOT ASSOC WITH NEW SOurCES FILE
 			sourceF=os.path.join(self.sourcesDir,"{}.list".format(name.replace(" ","_")))
 			jsonF=os.path.join(self.managerDir,"{}.json".format(name.replace(" ","_")))
 			if len(fcontent)>0:
