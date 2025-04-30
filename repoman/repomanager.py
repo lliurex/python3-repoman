@@ -126,6 +126,7 @@ class manager():
 	def _getSourcesFileContents(self,file,contents):
 		repolines=[]
 		cont=0
+		signed=""
 		for fline in contents:
 			fline=self._sanitizeString(fline)
 			(key,data)=fline.split(":")[0],":".join(fline.split(":")[1:])
@@ -151,39 +152,51 @@ class manager():
 			for release in releases.split():
 				repolines.append("{0}{1}{2} {3} {4}".format(types,signed,url,release,components))
 		return(self._getRepoContents(file,repolines))
-	#def _getRepoContents
+	#def _getSourcesFileContents
 
 	def _translateListToSources(self,content):
 		trContent={}
 		suites=[]
+		uriIndex=1
+		signedIndex=-1
+		commented=""
 		for rawLine in content:
 			line=rawLine.split()
-			uri=line[1]
+			if "://" in line[1]==False:
+				uriIndex+=1
+				signedIndex=1
+			uri=line[uriIndex]
 			if uri not in trContent:
 				trContent[uri]={}
 			types=line[0]
+			if types.startswith("#"):
+				commented="#"
+				types=types.replace("#","")
 			if types not in trContent[uri]:
 				trContent[uri][types]={}
-			suite=line[2]
+			suite=line[uriIndex+1]
 			oldSuite=trContent[uri][types].get("Suites"," ")
 			suite="{} {}".format(suite,oldSuite).lstrip()
 			trContent[uri][types].update({"Suites":suite})
-		components=line[3:]
+		components=line[uriIndex+1:]
 		oldComponents=trContent[uri][types].get("Components"," ")
 		components.extend(oldComponents.split())
 		components=" ".join(set(components))
 		trContent[uri][types].update({"Components":components})
-		signed=""
-		if "Signed" not in trContent[uri][types]:
-			trContent[uri][types].update({"Signed-By":signed})
+		if signedIndex>0:
+			signed=line[1].split("=")[-1].replace("]","")
+		else:
+			signed=""
+		trContent[uri][types].update({"Signed-By":signed})
 		trLine=[]
 		for uri,repoData in trContent.items():
 			for type,data in repoData.items():
-				trLine.append("Types: {}\n".format(type))
-				trLine.append("URIs: {}\n".format(uri))
-				trLine.append("Suites: {}\n".format(data["Suites"]))
-				trLine.append("Components: {}\n".format(data["Components"]))
-				trLine.append("Signed-By: {}\n".format(data["Signed-By"]))
+				trLine.append("{}Types: {}\n".format(commented,type))
+				trLine.append("{}URIs: {}\n".format(commented,uri))
+				trLine.append("{}Suites: {}\n".format(commented,data["Suites"]))
+				trLine.append("{}Components: {}\n".format(commented,data["Components"]))
+				if len(signed)>0:
+					trLine.append("{}Signed-By: {}\n".format(commented,data["Signed-By"]))
 		return(trLine)
 	#def _translateListToSources
 
@@ -384,20 +397,20 @@ class manager():
 	#def _getDefaultJsonFromDefaultRepo
 
 	def _getSourcesPathFromJson(self,file):
-		if os.path.dirname(file)==os.path.join(self.managerDir,"default"):
-			file=self.sourcesFile
-		else:
-			files=[os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".list")),os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".sources"))]
-			for file in files:
-				if os.path.exists(file):
-					 break
+		#if os.path.dirname(file)==os.path.join(self.managerDir,"default"):
+		#	file=self.sourcesFile
+		#else:
+		files=set([os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".list")),os.path.join(self.sourcesDir,os.path.basename(file).replace(".json",".sources"))])
+		for file in files:
+			if os.path.exists(file):
+				 break
+		if os.path.exists(file)==False:
+			file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".list",".sources"))
 			if os.path.exists(file)==False:
-				file=os.path.join(self.sourcesDir,os.path.basename(file).replace(".list",".sources"))
-				if os.path.exists(file)==False:
-					for f in os.scandir(self.sourcesDir):
-						if f.name.lower()==os.path.basename(file).lower():
-							file=f.path
-							break
+				for f in os.scandir(self.sourcesDir):
+					if f.name.lower()==os.path.basename(file).lower():
+						file=f.path
+						break
 		return(file)
 	#def _getSourcesPathFromJson
 
@@ -629,8 +642,6 @@ class manager():
 	def disableRepoByName(self,name):
 		repo=self._getRepoByName(name)
 		self._debug("Disabling repo {}".format(repo.keys()))
-		print("Disabling repo {}".format(repo.keys()))
-		print(repo)
 		repos=[]
 		file=""
 		url=""
@@ -644,9 +655,9 @@ class manager():
 			file=self._getSourcesPathFromJson(file)
 		if len(file)>0:
 			fcontent=self._getFileContent(file)
-			if self._isFormatSources(fcontent.split("\n"))==True:
+			isSources=self._isFormatSources(fcontent)
+			if isSources==True:
 				tmpcontent=self._getSourcesFileContents(file,fcontent.split("\n"))
-				print(tmpcontent)
 				tmprepos=[]
 				for release in (tmpcontent[url].keys()):
 					raw=tmpcontent[url][release].get("raw","")
@@ -659,13 +670,13 @@ class manager():
 				line=self._sanitizeString(line)
 				url=url.rstrip("/")
 				if (url.replace(" ","") not in line.replace(" ","")) and len(line)>0:
-					if line.startswith("deb")==False and line.startswith("#")==False:
+					if line.startswith("deb")==False and line.startswith("#")==False and isSources==False:
 						line="deb {}".format(line)
 					newcontent.append(line.replace("// ","/ "))
 				elif len(line)>0:
 					prefix="#"
 					line=line.replace("#","",1)
-					if line.startswith("deb")==False:
+					if line.startswith("deb")==False and isSources==False:
 						prefix+="deb"
 					if len(prefix)>1:
 						prefix+=" "
@@ -682,15 +693,20 @@ class manager():
 		file=""
 		for url,urldata in repo.items():
 			for release,releasedata in urldata.items():
-				if os.path.exists(releasedata.get("file","")):
+				rFile=releasedata.get("file","")
+				if os.path.exists(rFile):
 					if file=="":
-						file=releasedata.get("file","")
-					raw=releasedata.get("raw","") 
-					raw=self._sanitizeString(raw)
-					if len(raw)>0:
-						if raw.startswith("deb")==False and raw.startswith("#")==False:
-							raw="deb {}".format(raw)
-						repos.append("{}".format(raw))
+						file=releasedata.get("file")
+				elif len(rFile.strip())>0:
+					file=rFile
+				else:
+					file=os.path.join(self.sourcesDir,"{}_{}.sources".format(url,release))
+				raw=releasedata.get("raw","") 
+				raw=self._sanitizeString(raw)
+				if len(raw)>0:
+					if raw.startswith("deb")==False and raw.startswith("#")==False:
+						raw="deb {}".format(raw)
+					repos.append("{}".format(raw))
 		if file.endswith(".json"):
 			file=self._getSourcesPathFromJson(file)
 		if len(file)>0:
