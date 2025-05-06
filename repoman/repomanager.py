@@ -210,7 +210,7 @@ class manager():
 		for f in os.scandir(self.trustedDir):
 			cmd=["gpg",f.path]
 			out=subprocess.check_output(cmd,universal_newlines=True)
-			print(out)
+	#def _searchTrustedFile
 
 	def _jsonFromContents(self,file,contents):
 		data={}
@@ -744,7 +744,7 @@ class manager():
 			req=session.get("{}/".format(url), verify=True,timeout=5,headers = {'Host':"{}".format(host)})
 			self._debug("Connected")
 		except Exception as e:
-			self._debug("Error conneting to  {}: {}".format(url,e))
+			self._debug("Error connecting to  {}: {}".format(url,e))
 			return(dirlist)
 		try:
 			content=req.text
@@ -923,7 +923,7 @@ class manager():
 		try:
 			subprocess.run(cmd)
 		except Exception as e:
-			print("ERROR: {}".format(e))
+			print("Update ERROR: {}".format(e))
 	#def updateRepos
 
 	def disableAll(self):
