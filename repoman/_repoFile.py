@@ -80,18 +80,18 @@ class _jRepo():
 
 	def writeToFile(self):
 		serial=self.serialize()
+		frepo=serial.get("file")
 		if serial["Signed-By"]=="":
 			serial.pop("Signed-By")
 		serial["Components"]=" ".join(serial["Components"])
 		if serial["format"]=="sources":
 			format=serial.pop("format")
 			serial["Suites"]=" ".join(serial["Suites"])
+			serial.pop("file")
 			serial.pop("info")
 			lines=yaml.dump(serial)
 		else:
 			lines=self._generateLinesFromSerial(serial)
-		print(serial)
-		frepo=serial.pop("file")
 		with open(frepo,"w") as f:
 			f.write(lines)
 	#def writeToFile(self):
