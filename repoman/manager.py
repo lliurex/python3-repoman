@@ -1,5 +1,6 @@
 #/usr/bin/env python3
 import os,sys,shutil
+import subprocess
 import yaml
 from ._repoFile import _repoFile
 from ._configManager import _configManager
@@ -19,6 +20,14 @@ class manager():
 		if self.dbg==True:
 			print("manager: {}".format(msg))
 	#def _debug
+
+	def updateRepos(self):
+		cmd=["apt","update"]
+		try:
+			subprocess.run(cmd)
+		except Exception as e:
+			print("ERROR: {}".format(e))
+	#def updateRepos
 	
 	def getRepos(self):
 		repos={}
@@ -85,16 +94,14 @@ class manager():
 		repo=self.getRepoByName(name)
 		if len(repo)>0:
 			repo["Enabled"]=True
-		self._writeRepo(repo)
-		return(repo)
+		return(self._writeRepo(repo))
 	#def enableRepoByName
 
 	def disableRepoByName(self,name):
 		repo=self.getRepoByName(name)
 		if len(repo)>0:
 			repo["Enabled"]=False
-		self._writeRepo(repo)
-		return(repo)
+		return(self._writeRepo(repo))
 	#def enableRepoByName
 
 	def addRepo(self,url,name="",desc=""):
@@ -107,10 +114,13 @@ class manager():
 	#def addRepo
 
 	def _writeRepo(self,repo):
+		retVal=1
 		fname=repo.get("file")
 		if len(fname)>0:
 			frepo=_repoFile()
 			frepo.writeFromData(repo)
+			retVal=0
+		return(retVal)
 	#def _writeRepo
 
 	def _generateConfigFromSources(self):
