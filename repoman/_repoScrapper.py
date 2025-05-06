@@ -40,7 +40,7 @@ class _repoScrapper():
 			req=session.get("{}/".format(url), verify=True,timeout=5,headers = {'Host':"{}".format(host)})
 			self._debug("Connected")
 		except Exception as e:
-			self._debug("Error conneting to  {}: {}".format(url,e))
+			self._debug("Error connecting to {}: {}".format(url,e))
 			return(dirlist)
 		try:
 			content=req.text
