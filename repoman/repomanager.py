@@ -18,6 +18,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
+		self.trustedDir="/etc/apt/trusted.gpg.d"
 		self.dbg=False
 	#def __init__
 	
@@ -178,7 +179,7 @@ class manager():
 			oldSuite=trContent[uri][types].get("Suites"," ")
 			suite="{} {}".format(suite,oldSuite).lstrip()
 			trContent[uri][types].update({"Suites":suite})
-		components=line[uriIndex+1:]
+		components=line[uriIndex+2:]
 		oldComponents=trContent[uri][types].get("Components"," ")
 		components.extend(oldComponents.split())
 		components=" ".join(set(components))
@@ -197,8 +198,19 @@ class manager():
 				trLine.append("{}Components: {}\n".format(commented,data["Components"]))
 				if len(signed)>0:
 					trLine.append("{}Signed-By: {}\n".format(commented,data["Signed-By"]))
+				elif commented!="#":
+					#search for a signed by in truste.d
+					signed=self._searchTrustedFile(uri)
+					trLine.append("{}Signed-By: {}\n".format(commented,signed))
 		return(trLine)
 	#def _translateListToSources
+
+	def _searchTrustedFile(self,uri):
+	#Best effort for assign a trusted key to a knowed repo based on uri
+		for f in os.scandir(self.trustedDir):
+			cmd=["gpg",f.path]
+			out=subprocess.check_output(cmd,universal_newlines=True)
+			print(out)
 
 	def _jsonFromContents(self,file,contents):
 		data={}
@@ -330,7 +342,6 @@ class manager():
 		#Sort content
 		#Get format for content. If it's old format (aka .list) and file not exists
 		#or in the case that the file exists and it's a sources one then write new format
-		#REM TODO
 		old=True
 		if os.path.exists(file):
 			oldContent=self.readSourcesFile(file)
