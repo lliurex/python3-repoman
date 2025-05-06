@@ -27,17 +27,22 @@ class _configManager():
 		return(jcontent)
 	#def _readJFile
 
-	def getRepos(self):
-		repos={}
+	def getRepos(self,default=False):
+		sortRepos={}
 		if os.path.exists(CONFDIR):
-			for f in os.scandir(CONFDIR):
-				if f.path.endswith(".json"):
-					jContent=self._readJFile(f.path)
-					repos.update(self._readJFile(f.path))
-			for f in os.scandir(os.path.join(CONFDIR,"default")):
-				if f.path.endswith(".json"):
-					jContent=self._readJFile(f.path)
-					repos.update(self._readJFile(f.path))
-		return(repos)
+			if default==True:
+				dirs=[os.path.join(CONFDIR,"default")]
+			else:
+				dirs=[os.path.join(CONFDIR,"default"),CONFDIR]
+			for dir in dirs:
+				repos={}
+				for f in os.scandir(dir):
+					if f.path.endswith(".json"):
+						repos.update(self._readJFile(f.path))
+				sortkeys=list(repos.keys())
+				sortkeys.sort()
+				for key in sortkeys:
+					sortRepos.update({key:repos[key]})
+		return(sortRepos)
 	#def getRepos
 #class _configManager
