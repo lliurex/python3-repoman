@@ -53,7 +53,7 @@ class manager():
 
 	def _sortRepos(self,repos):
 		sortedRepos={}
-		mRepos=self._getManagedRepos()
+		mRepos=self._getManagedRepos(default=True)
 		print(mRepos)
 
 
@@ -68,9 +68,9 @@ class manager():
 		return(repos)
 	#def _getReposByState
 
-	def _getManagedRepos(self):
+	def _getManagedRepos(self,default=False):
 		managedRepos=_configManager()
-		return(managedRepos.getRepos())
+		return(managedRepos.getRepos(default))
 	#def _getManagedRepos
 
 	def getEnabledRepos(self):
