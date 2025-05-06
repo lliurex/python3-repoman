@@ -2,9 +2,18 @@
 import os,sys,shutil
 import subprocess
 import yaml
-from ._repoFile import _repoFile
-from ._configManager import _configManager
-from ._repoScrapper import _repoScrapper
+try:
+	from ._repoFile import _repoFile
+except:
+	from _repoFile import _repoFile
+try:
+	from ._configManager import _configManager
+except:
+	from _configManager import _configManager
+try:
+	from ._repoScrapper import _repoScrapper
+except:
+	from _repoScrapper import _repoScrapper
 
 BASEDIR="/etc/apt"
 OLDLIST=os.path.join(BASEDIR,"sources.list")
@@ -41,6 +50,12 @@ class manager():
 			repos.update(repo.getRepoDEB822())
 		return(repos)
 	#def getRepos
+
+	def _sortRepos(self,repos):
+		sortedRepos={}
+		mRepos=self._getManagedRepos()
+		print(mRepos)
+
 
 	def _getReposByState(self,state=True):
 		configuredRepos=self.getRepos()
@@ -135,7 +150,6 @@ class manager():
 				pass
 			else:
 				managedRepos.update({repoUri:rawRepos[repoUri]})
-		print(managedRepos)
 	#def _generateConfigFromSources
 
 	def _generateSourcesFromConfig(self):
