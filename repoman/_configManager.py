@@ -32,7 +32,12 @@ class _configManager():
 		if os.path.exists(CONFDIR):
 			for f in os.scandir(CONFDIR):
 				if f.path.endswith(".json"):
+					jContent=self._readJFile(f.path)
+					repos.update(self._readJFile(f.path))
+			for f in os.scandir(os.path.join(CONFDIR,"default")):
+				if f.path.endswith(".json"):
+					jContent=self._readJFile(f.path)
 					repos.update(self._readJFile(f.path))
 		return(repos)
 	#def getRepos
-
+#class _configManager
