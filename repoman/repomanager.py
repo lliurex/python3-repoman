@@ -146,7 +146,6 @@ class manager():
 	def enableDefault(self):
 		repos=self._getManagedRepos(default=True)
 		for uri,repo in repos.items():
-			print(uri)
 			if "lliurex" in uri.lower() and "mirror" not in uri.lower():
 				self.enableRepoByName(repo["Name"])
 	#def enableDefault
