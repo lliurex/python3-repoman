@@ -38,7 +38,7 @@ class manager():
 			print("ERROR: {}".format(e))
 	#def updateRepos
 	
-	def getRepos(self):
+	def getRepos(self,sorted=False):
 		repos={}
 		if os.path.exists(OLDLIST):
 			repo=_repoFile()
@@ -48,14 +48,22 @@ class manager():
 			repo=_repoFile()
 			repo.setFile(f.path)
 			repos.update(repo.getRepoDEB822())
+		if sorted==True:
+			repos=self._sortRepos(repos)
 		return(repos)
 	#def getRepos
 
 	def _sortRepos(self,repos):
+		mRepos=_configManager()
 		sortedRepos={}
-		mRepos=self._getManagedRepos(default=True)
-		print(mRepos)
-
+		for name,data in mRepos.getRepos().items():
+			sortedRepos.update({name:data})
+			repo=self.getRepoByName(name,repos)
+			if len(repo)>0:
+				repos.pop(repo["URIs"])
+		sortedRepos.update(repos)
+		return(sortedRepos)
+	#def _sortRepos
 
 	def _getReposByState(self,state=True):
 		configuredRepos=self.getRepos()
@@ -81,13 +89,15 @@ class manager():
 		return(self._getReposByState(False))
 	#def getDisabledRepos
 
-	def getRepoByName(self,name):
-		repos=self.getRepos()
+	def getRepoByName(self,name,repos={}):
+		if len(repos)==0:
+			repos=self.getRepos()
 		repo={}
 		uri=""
 		for repouri,data in repos.items():
 			if data["Name"]==name:
 				uri=repouri
+				break
 		if uri!="":
 			repo=repos[uri]
 		return(repo)
@@ -161,6 +171,5 @@ class manager():
 				rawRepos.update(fData)
 		for repoUri in managedRepos.keys():
 			rawRepos.update({repoUri:managedRepos[repoUri]})
-		print(rawRepos)
 	#def _generateSourcesFromConfig
 #class manager
