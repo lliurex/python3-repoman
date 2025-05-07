@@ -68,14 +68,12 @@ class manager():
 					if suite in repo.get("Suites"):
 						#Same uri and same suite. Duplicated
 						repos.pop(repo["URIs"])
-					if repo["Enabled"]==True:
-						data["enabled"]=True
+					data["enabled"]=repo["Enabled"]
 			repo=self.getRepoByName(uri,repos)
 			if len(repo)<=0:
 				repo=self.getRepoByName(name,repos)
 			if len(repo)>0:
-				if repo["Enabled"]==True:
-					data["enabled"]=True
+				data["enabled"]=repo["Enabled"]
 				repos.pop(repo["URIs"])
 			sortedRepos.update({name:data})
 		sortedRepos.update(repos)
@@ -171,8 +169,8 @@ class manager():
 		retVal=1
 		fname=repo.get("file")
 		if fname!=None:
-			if os.path.exists(os.path.join(SOURCESDIR,fname))==True:
-				fname=os.path.join(SOURCESDIR,fname)
+			if os.path.exists(os.path.join(SOURCESDIR,os.path.basename(fname)))==True:
+				fname=os.path.join(SOURCESDIR,os.path.basename(fname))
 				repo["file"]=fname
 			if len(fname)>0:
 				frepo=_repoFile()
