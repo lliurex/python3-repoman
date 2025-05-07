@@ -83,11 +83,9 @@ class manager():
 	def _getReposByState(self,state=True):
 		configuredRepos=self.getRepos()
 		repos={}
-		for repo in configuredRepos:
-			for frepo,fdata in repo.items():
-				for uri,data in fdata.items():
-					if data.get("Enabled",True)==state:
-						repos[uri]=data
+		for uri,repo in configuredRepos.items():
+			if repo.get("Enabled",True)==state:
+				repos[uri]=repo
 		return(repos)
 	#def _getReposByState
 
@@ -145,6 +143,14 @@ class manager():
 		return(self._writeRepo(repo))
 	#def enableRepoByName
 
+	def enableDefault(self):
+		repos=self._getManagedRepos(default=True)
+		for uri,repo in repos.items():
+			print(uri)
+			if "lliurex" in uri.lower() and "mirror" not in uri.lower():
+				self.enableRepoByName(repo["Name"])
+	#def enableDefault
+
 	def disableRepoByName(self,name):
 		repo=self.getRepoByName(name)
 		if len(repo)<=0:
@@ -155,6 +161,13 @@ class manager():
 			repo["Enabled"]=False
 		return(self._writeRepo(repo))
 	#def enableRepoByName
+
+	def disableAll(self):
+		repos=self.getEnabledRepos()
+		for uri,repo in repos.items():
+			repo["Enabled"]=False
+			self._writeRepo(repo)
+	#def disableAll(self):
 
 	def addRepo(self,url,name="",desc=""):
 		uri=url.replace("deb ","").strip()
@@ -203,4 +216,51 @@ class manager():
 		for repoUri in managedRepos.keys():
 			rawRepos.update({repoUri:managedRepos[repoUri]})
 	#def _generateSourcesFromConfig
+
+	def chkPinning(self,pinfile=""):
+		pin=False
+		fcontent=""
+		if len(pinfile)<=0:
+			pinfile="/etc/apt/preferences.d/lliurex-pinning"
+		if os.path.exists(pinfile):
+			with open(pinfile,"r") as f:
+				fcontent=f.read()
+		keys=["Package","Pin","Pin-Priority"]
+		for line in fcontent.split("\n"):
+			if line.strip().startswith("#")==True or ":" in line.strip()==False:
+				continue
+			spl=line.split(":")
+			if line.split(":")[0] in keys:
+				keys.remove(line.split(":")[0])
+		if len(keys)==0:
+			pin=True
+		return(pin)
+	#def chkPinning
+
+	def reversePinning(self,pinfile=""):
+		fcontent=""
+		keys=["Package","Pin","Pin-Priority"]
+		if len(pinfile)<=0:
+			pinfile="/etc/apt/preferences.d/lliurex-pinning"
+		sfile=pinfile
+		if os.path.exists(sfile)==False:
+			sfile="/usr/share/first-aid-kit/rsrc/lliurex-pinning"
+			keys=[]
+		if os.path.exists(sfile):
+			with open(sfile,"r") as f:
+				fcontent=f.read()
+		content=[]
+		for line in fcontent.split("\n"):
+			raw=line.strip()
+			if ":" in line:
+				raw=line.replace("#","")
+				if raw.strip().split(":")[0] in keys:
+					if line.strip()[0]=="P":
+						raw="#{}".format(raw)
+			if len(raw)>0:
+				content.append("{}\n".format(raw))
+		if len(content)>0:
+			with open(pinfile,"w") as f:
+				f.writelines(content)
+	#def reversePinning
 #class manager
