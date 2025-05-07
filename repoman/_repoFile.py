@@ -37,16 +37,15 @@ class _jRepo():
 
 	def _generateLinesFromSerial(self,serial):
 			dictlines={}
-			lines=""
 			rawLines={}
 			frepo=serial.get("file")
+			lines=yaml.dump(serial)
 			serial.pop("info")
 			if isinstance(serial["Suites"],list):
 				suites=" ".join(serial["Suites"])
 			else:
 				suites=serial["Suites"]
 				serial["Suites"]=serial["Suites"].split(" ")
-			lines=yaml.dump(serial)
 			for suite in serial["Suites"]:
 				line=serial["Types"]
 				if serial.get("Enabled",True)==False:
@@ -60,13 +59,21 @@ class _jRepo():
 				line+=" {}".format(serial["Components"])
 				rawLine=list(filter(None,line.strip().replace("#","").split(" ")))
 				rawLine.sort()
-				rawLines["".join(rawLine)]=line
+				rawLine="".join(rawLine)
+				rawLines[rawLine]=line
 			if os.path.exists(frepo):
 				fcontent=""
 				with open(frepo,"r") as f:
 					fcontent=f.read()
 				dictlines={}
 				for l in fcontent.split("\n"):
+					if serial["URIs"] in l:
+						if serial.get("Enabled",True)==False:
+							if l.strip().startswith("#")==False:
+								l="#{}".format(l)
+						else:
+							if l.strip().startswith("#")==True:
+								l.lstrip("#")
 					line=list(filter(None,l.strip().replace("#","").replace("\"","").replace("\'","").split(" ")))
 					line.sort()
 					line="".join(line)
