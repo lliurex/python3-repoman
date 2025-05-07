@@ -23,6 +23,8 @@ class _configManager():
 		#content={} 
 		with open(jFile,"r") as f:
 			jcontent=json.loads(f.read())
+		if "Enabled" in jcontent:
+			jcontent.pop("Enabled")
 		#for key in content.keys():
 		#	newkey=key
 		#	if key.endswith("/")==False:
