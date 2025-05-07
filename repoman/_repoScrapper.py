@@ -1,7 +1,7 @@
 #/usr/bin/env python3
 import os
 try:
-	from . import _repoFile 
+	from ._repoFile import _repoFile
 except:
 	from _repoFile import _repoFile
 try:
@@ -19,7 +19,7 @@ SOURCESDIR=os.path.join(BASEDIR,"sources.list.d")
 
 class _repoScrapper():
 	def __init__(self):
-		self.dbg=True
+		self.dbg=False
 	#def __init__
 
 	def _debug(self,msg):
@@ -136,29 +136,25 @@ class _repoScrapper():
 					fcontent=["deb {0} {1}".format(url.replace('dists',''),' '.join(components))]
 				else:
 					fcontent=self._repositoryScrap(session,deburl)
-			#REM
-			#FILENAME NOT ASSOC WITH NEW SOurCES FILE
 			repo=_repoFile()
-			name="{}_{}.list".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
+			if name=="":
+				name="{}_{}.sources".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
+			elif name.endswith(".sources")==False:
+				name+=".sources"
 			fpath=os.path.join(SOURCESDIR,name)
-			repo.setFile(fpath)
+			repo.setFile(fpath.replace(".sources",".list"))
 			repo.raw="\n".join(fcontent)
 			fcontent=repo.getRepoDEB822()
-			print(fcontent[url])
+			repo.setFile(fpath)
+			repo.raw=fcontent
+			if url not in fcontent.keys():
+				if url.endswith("/")==False:
+					url+="/"
+			if url not in fcontent.keys():
+				return 1
+			fcontent[url]["format"]="sources"
+			fcontent[url]["file"]=fpath
+			fcontent[url]["Name"]=name
+			fcontent[url]["Description"]=desc
 			repo.writeFromData(fcontent[url])
-
-	#		sourceF=os.path.join(self.sourcesDir,"{}.list".format(name.replace(" ","_")))
-	#		jsonF=os.path.join(self.managerDir,"{}.json".format(name.replace(" ","_")))
-	#		if len(fcontent)>0:
-	#			self._writeSourceFile(sourceF,fcontent)
-	#			jfile=self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
-	#			ret=0
-	#		afterAdd=self.getRepos()
-	#		if len(beforAdd)==len(afterAdd):
-	#			if os.path.isfile(sourceF):
-	#				self._debug("Deleting {} (duplicated)".format(sourceF))
-	#				os.unlink(sourceF)
-	#			if os.path.isfile(jfile):
-	#				self._debug("Deleting {} (duplicated)".format(jfile))
-	#				os.unlink(jfile)
 	#def addRepo

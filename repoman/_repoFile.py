@@ -41,7 +41,11 @@ class _jRepo():
 			rawLines={}
 			frepo=serial.get("file")
 			serial.pop("info")
-			serial["Suites"]=" ".join(serial["Suites"])
+			if isinstance(serial["Suites"],list):
+				suites=" ".join(serial["Suites"])
+			else:
+				suites=serial["Suites"]
+				serial["Suites"]=serial["Suites"].split(" ")
 			lines=yaml.dump(serial)
 			for suite in serial["Suites"]:
 				line=serial["Types"]
@@ -70,6 +74,7 @@ class _jRepo():
 				dictlines.update(rawLines)
 			else:
 				dictlines=rawLines.copy()
+			lines=""
 			for key,line in dictlines.items():
 				if len(line)==0:
 					continue
@@ -83,7 +88,8 @@ class _jRepo():
 		frepo=serial.get("file")
 		if serial["Signed-By"]=="":
 			serial.pop("Signed-By")
-		serial["Components"]=" ".join(serial["Components"])
+		if isinstance(serial["Components"],list):
+			serial["Components"]=" ".join(serial["Components"])
 		if serial["format"]=="sources":
 			format=serial.pop("format")
 			serial["Suites"]=" ".join(serial["Suites"])
@@ -118,7 +124,7 @@ class _repoFile():
 	#def setFile
 
 	def getRepoDEB822(self):
-		repos=[]
+		repos={}
 		if self.file.endswith(".list"):
 			repos=self._loadFromList()
 		elif self.file.endswith(".sources"):
@@ -136,7 +142,7 @@ class _repoFile():
 				data=fline[fline.index("[")+1:fline.index("]")]
 				fline=fline[0:fline.index("[")]+fline[fline.index("]")+2:]
 			line=list(filter(None,fline.strip().split(" ")))
-			if len(line)<2:
+			if len(line)<4:
 				continue
 			repo=_jRepo()
 			repo.file=self.file
@@ -147,6 +153,8 @@ class _repoFile():
 				repo.uri=line[1]
 			#elif repo.uri!=line[1]:
 			#	continue
+			if ":/" not in repo.uri:
+				continue
 			repo.suites.append(line[2].strip())
 			components=line[3:]
 			repo.components.extend(components)
@@ -166,12 +174,14 @@ class _repoFile():
 				repos[repo.uri]["Components"]=list(set(repos[repo.uri]["Components"]))
 				repos[repo.uri]["Suites"].extend(repo.suites)
 				repos[repo.uri]["Suites"]=list(set(repos[repo.uri]["Suites"]))
+				repos[repo.uri]["file"]=self.file
 				if len(repo.signed)>0:
 					repos[repo.uri]["Signed-By"]=repo.signed
 				if repo.enabled==True:
 					repos[repo.uri]["Enabled"]=True
 			else:
 				repos[repo.uri]=repo.serialize()
+				repos[repo.uri]["file"]=self.file
 		return(repos)
 	#def _loadFromList
 
@@ -201,6 +211,7 @@ class _repoFile():
 		repo.file=data.get("file",self.file)
 		repo.type=data["Types"]
 		repo.name=data["Name"]
+		repo.desc=data["Description"]
 		repo.components=data["Components"]
 		repo.suites=data["Suites"]
 		repo.signed=data.get("Signed-By","")

@@ -52,11 +52,20 @@ class _configManager():
 				dirs=[os.path.join(CONFDIR,"default")]
 			else:
 				dirs=[os.path.join(CONFDIR,"default"),CONFDIR]
+			uris={}
 			for dir in dirs:
 				repos={}
 				for f in os.scandir(dir):
 					if f.path.endswith(".json"):
-						repos.update(self._readJFile(f.path))
+						jRepo=self._readJFile(f.path)
+						for key,data in jRepo.items():
+							URIs=data.get("repos",[])
+							if len(URIs)>0:
+								uri=URIs[0].split(" ")[0]
+								suite=URIs[0].split(" ")[1]
+								if uri not in uris:
+									uris.update({uri:suite})
+									repos.update({key:data})
 				sortkeys=list(repos.keys())
 				sortkeys.sort()
 				for key in sortkeys:
