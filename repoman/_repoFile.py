@@ -218,7 +218,7 @@ class _repoFile():
 		repo.file=data.get("file",self.file)
 		repo.type=data["Types"]
 		repo.name=data["Name"]
-		repo.desc=data["Description"]
+		repo.desc=data.get("Description","")
 		repo.components=data["Components"]
 		repo.suites=data["Suites"]
 		repo.signed=data.get("Signed-By","")
