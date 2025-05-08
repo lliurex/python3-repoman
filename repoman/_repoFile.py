@@ -91,6 +91,7 @@ class _jRepo():
 	#def _generateLinesFromSerial
 
 	def writeToFile(self):
+		err=0
 		serial=self.serialize()
 		frepo=serial.get("file")
 		if serial["Signed-By"]=="":
@@ -105,8 +106,12 @@ class _jRepo():
 			lines=yaml.dump(serial)
 		else:
 			lines=self._generateLinesFromSerial(serial)
-		with open(frepo,"w") as f:
-			f.write(lines)
+		try:
+			with open(frepo,"w") as f:
+				f.write(lines)
+		except:
+			err=1
+		return(err)
 	#def writeToFile(self):
 #class _jRepo
 
@@ -225,8 +230,7 @@ class _repoFile():
 		repo.uri=data["URIs"]
 		repo.format=data["format"]
 		repo.enabled=data["Enabled"]
-		repo.writeToFile()
-		return(repo)
+		return(repo.writeToFile())
 	#def _loadFromData
 
 	def _writeRepoSources(self):

@@ -75,7 +75,10 @@ class _repoScrapper():
 		if len(releaseDirs)==0: #Server doesn't list nothing so...
 			for component in knowedComponents:
 				fcomponent=os.path.join(url.rstrip("/"),component,"binary-amd64","Packages")
-				fcontent=requests.get(fcomponent)
+				try:
+					fcontent=requests.get(fcomponent)
+				except:
+					continue
 				if fcontent.ok==True:
 					components.append(component)
 		else:
@@ -212,7 +215,7 @@ class _repoScrapper():
 		return(signedby)
 
 	def addRepo(self,url,name="",desc="",signedby=""):
-		ret=1
+		err=1
 		desc=desc.strip()
 		debparms=""
 		if url.endswith("/")==False:
@@ -274,4 +277,6 @@ class _repoScrapper():
 			if signedby!="":
 				fcontent[url]["Signed-By"]=self._getSignedBy(signedby)
 			repo.writeFromData(fcontent[url])
+			err=0
+		return(err)
 	#def addRepo

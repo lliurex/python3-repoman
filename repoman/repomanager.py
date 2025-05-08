@@ -169,12 +169,15 @@ class manager():
 	#def disableAll(self):
 
 	def addRepo(self,url,name="",desc="",signedby=""):
+		err=0
 		uri=url.replace("deb ","").strip()
 		if len(self.getRepoByUri(uri))>0:
 			print("Already present")
+			err=1
 		else:
 			scrapper=_repoScrapper()
-			scrapper.addRepo(uri,name,desc,signedby)
+			err=scrapper.addRepo(uri,name,desc,signedby)
+		return(err)
 	#def addRepo
 
 	def _writeRepo(self,repo):
