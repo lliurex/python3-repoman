@@ -1,5 +1,6 @@
 #/usr/bin/env python3
-import os
+import os,shutil
+import tempfile
 try:
 	from ._repoFile import _repoFile
 except:
@@ -16,6 +17,7 @@ from bs4 import BeautifulSoup
 
 BASEDIR="/etc/apt"
 SOURCESDIR=os.path.join(BASEDIR,"sources.list.d")
+TRUSTEDDIR=os.path.join(BASEDIR,"trusted.gpg.d")
 
 class _repoScrapper():
 	def __init__(self):
@@ -70,16 +72,24 @@ class _repoScrapper():
 		components=[]
 		self._debug("Release Reading {}".format(url))
 		releaseDirs=self._readServerDir(session,url)
-		for component in releaseDirs:
-			component=component.replace('/','').lstrip()
-			self._debug("Inspect releasedir {}".format(component))
-			if component in knowedComponents:
-				components.append(component)
+		if len(releaseDirs)==0: #Server doesn't list nothing so...
+			for component in knowedComponents:
+				fcomponent=os.path.join(url.rstrip("/"),component,"binary-amd64","Packages")
+				fcontent=requests.get(fcomponent)
+				if fcontent.ok==True:
+					components.append(component)
+		else:
+			for component in releaseDirs:
+				component=component.replace('/','').lstrip()
+				self._debug("Inspect releasedir {}".format(component))
+				if component in knowedComponents:
+					components.append(component)
 		return(components)
 	#def _releaseScrap
 
 	def _repositoryScrap(self,session,url):
 		repoUrl=[]
+		repoData={"name":"","desc":"","orig":"","sign":"","arch":"","vers":""}
 		cmd=["lsb_release","-c"]
 		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
 		codename=output.split(" ")[-1]
@@ -88,6 +98,66 @@ class _repoScrapper():
 		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
 		self._debug("Repo Reading {}".format(url))
 		dirlist=self._readServerDir(session,url)
+		if len(dirlist)==0:
+			for release in knowedReleases:
+				deburl="{}/dists/{}".format(url.rstrip("/"),release)
+				components=self._releaseScrap(session,deburl)
+				if len(components)>0:
+					repoUrl.append("deb {0} {1} {2}".format(url,release," ".join(components)))
+		else:
+			if "conf/" not in dirlist:
+				self._debug("conf not found")
+				repoUrl=self._scrapDistribution(url,dirlist)
+			else:
+				repoUrl,repoData=self._scrapConf(session,url,dirlist)
+		if repoData["name"]!="":
+			repoData["name"]=repoData["name"]+repoData["vers"].split(".")[0]
+		return (repoUrl,repoData)
+	#def _repositoryScrap
+
+	def _scrapConf(self,session,url,dirlist):
+		repoUrl=[]
+		repoData={"name":"","desc":"","orig":"","sign":"","arch":"","vers":""}
+		urlconf=os.path.join(url,"conf/")
+		dirlist=self._readServerDir(session,urlconf)
+		if "distributions" in dirlist:
+			fdist=os.path.join(urlconf,"distributions")
+			dcontent=requests.get(fdist)
+			if dcontent.ok==True:
+				fcontent=dcontent.content.decode()
+				repoinfo={"codename":"","components":"","description":"","label":""}
+				for fline in fcontent.split("\n"):
+					if fline.lower().startswith("codename:"):
+						if repoinfo.get("codename","")!="":
+							repoUrl.append("deb {0} {1} {2}".format(url,repoinfo["codename"],repoinfo["components"]))
+						repoinfo={"codename":fline.split(":")[-1].strip(),"components":"","description":"","label":""}
+					elif fline.lower().startswith("components:"):
+						repoinfo["components"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("label:") and repoData["name"]=="":
+						repoData["name"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("description:") and repoData["desc"]=="":
+						repoData["desc"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("origin:") and repoData["orig"]=="":
+						repoData["orig"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("signwith:") and repoData["sign"]=="":
+						repoData["sign"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("architectures:") and repoData["arch"]=="":
+						repoData["arch"]=fline.split(":")[-1].strip()
+					elif fline.lower().startswith("version:") and repoData["vers"]=="":
+						repoData["vers"]=fline.split(":")[-1].strip()
+				if repoinfo["codename"]!="":
+					repoUrl.append("deb {0} {1} {2}".format(url,repoinfo["codename"],repoinfo["components"]))
+		return (repoUrl,repoData)
+	#def _scrapConf
+
+	def _scrapDistribution(self,url,dirlist):
+		repoUrl=[]
+		cmd=["lsb_release","-c"]
+		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
+		codename=output.split(" ")[-1]
+		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
+		lastChance=url.rstrip("/").split("/")[-1]
+		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
 		if "dists/" in dirlist:
 			url=os.path.join(url,"dists/")
 		elif "/dists" not in url:
@@ -96,24 +166,61 @@ class _repoScrapper():
 		dirlist=self._readServerDir(session,url)
 		if url.endswith('/dists/'):
 			for repodir in dirlist:
+				signedby=""
 				release=repodir.replace('/','').lstrip()
-				if release in knowedReleases or release in lastChanceReleases:
+				if release.endswith(".gpp"):
+					signedby="[Signed-by={}] ".format(release)
+				elif release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
 					components=self._releaseScrap(session,urlRelease)
-					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
+					repoUrl.append("deb {3}{0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components),signedby))
 				else:
 					self._debug("{0} not found in {1}".format(repodir,knowedReleases))
-		return repoUrl
-	#def _repositoryScrap
+		return(repoUrl)
+	#def _scrapDistribution
 
-	def addRepo(self,url,name="",desc=""):
+	def _getSignedBy(self,signedby):
+		if "://" in signedby:
+			if signedby.lower().startswith("http") and ("gpg" in signedby.lower() or signedby.endswith(".gpg") or signedby.endswith(".asc")):
+				scontent=requests.get(signedby)
+				if scontent.ok==True:
+					fname=os.path.basename(signedby)
+					fpath=os.path.join(TRUSTEDDIR,fname)
+					if fpath.endswith(".gpg")==False:
+						fpath+=".gpg"
+					fcontent=scontent.content.decode()
+					if os.path.exists(TRUSTEDDIR)==False:
+						os.makedirs(TRUSTEDDIR)
+					ftemp=tempfile.NamedTemporaryFile()
+					with open(ftemp.name,"w") as f:
+						f.write(fcontent)
+					if os.path.exists(fpath):
+						os.unlink(fpath)
+					cmd=["gpg","--dearmor","-o",fpath,ftemp.name]
+					subprocess.run(cmd)
+					ftemp.close()
+					signedby=fpath
+		elif len(signedby)<110:
+			if signedby.startswith("/")==True and os.path.exists(signedby)==True:
+				if os.path.exists(TRUSTEDDIR)==False:
+					os.makedirs(TRUSTEDDIR)
+				fname=os.path.basename(signedby)
+				fpath=os.path.join(TRUSTEDDIR,fname)
+				if fpath!=signedby:
+					shutil.copy2(signedby,fpath)
+				signedby=fpath
+		return(signedby)
+
+	def addRepo(self,url,name="",desc="",signedby=""):
 		ret=1
+		desc=desc.strip()
 		debparms=""
 		if url.endswith("/")==False:
 			url+="/"
 		decompurl=url.split(":/")
 		jfile=""
 		if len(decompurl)>1:
+			repodata={}
 			data=decompurl[-1].split(" ")
 			if len(decompurl[0].split(" "))>1:
 				debparms="{} ".format(" ".join(decompurl[0].split(" ")[:-1]))
@@ -135,13 +242,21 @@ class _repoScrapper():
 					components=self._releaseScrap(session,deburl)
 					fcontent=["deb {0} {1}".format(url.replace('dists',''),' '.join(components))]
 				else:
-					fcontent=self._repositoryScrap(session,deburl)
+					fcontent,repodata=self._repositoryScrap(session,deburl)
 			repo=_repoFile()
-			if name=="":
-				name="{}_{}.sources".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
-			elif name.endswith(".sources")==False:
-				name+=".sources"
-			fpath=os.path.join(SOURCESDIR,name)
+			if name=="" or name=="auto":
+				if repodata.get("name","")!="":
+					name=repodata["name"]
+				else:
+					name="{}_{}".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
+			if name.endswith(".sources")==True:
+				name=name.replace(".sources","")
+			if desc=="" or desc=="auto":
+				if repodata.get("desc","")!="":
+					desc=repodata["desc"]
+				else:
+					desc=url
+			fpath=os.path.join(SOURCESDIR,"{}.sources".format(name))
 			repo.setFile(fpath.replace(".sources",".list"))
 			repo.raw="\n".join(fcontent)
 			fcontent=repo.getRepoDEB822()
@@ -156,5 +271,7 @@ class _repoScrapper():
 			fcontent[url]["file"]=fpath
 			fcontent[url]["Name"]=name
 			fcontent[url]["Description"]=desc
+			if signedby!="":
+				fcontent[url]["Signed-By"]=self._getSignedBy(signedby)
 			repo.writeFromData(fcontent[url])
 	#def addRepo
