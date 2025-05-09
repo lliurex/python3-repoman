@@ -15,6 +15,7 @@ except:
 	appConfigN4d=None
 
 CONFDIR="/usr/share/repoman/sources.d"
+SOURCESDIR="/etc/apt/sources.list.d"
 
 class _configManager():
 	def __init__(self):
@@ -78,16 +79,22 @@ class _configManager():
 								suite=URIs[0].split(" ")[1]
 								if uri not in uris:
 									uris.update({uri:suite})
+									data["file"]=os.path.join(SOURCESDIR,f.name.replace(".json",".sources"))
+									data["Description"]=data["desc"]
+									data["URIs"]=uri
 									repos.update({key:data})
 				sortkeys=list(repos.keys())
 				sortkeys.sort()
 				for key in sortkeys:
 					sortrepos.update({key:repos[key]})
 					sortrepos[key].update({"Name":key})
-					uris=repos[key].get("repos",[])
-					if len(uris)>0:
-						if uris[0].startswith("http://mirror/"):
-							sortrepos[key].update({"available":self._isMirrorEnabled()})
+					if sortrepos[key].get("URIs","").startswith("http://mirror/"):
+						sortrepos[key].update({"available":self._isMirrorEnabled()})
+					if "mirror" not in key.lower():
+						if "ubuntu" in key.lower():
+							sortrepos[key].update({"Signed-By":"/etc/apt/trusted.gpg.d/ubuntu-keyring-2018-archive.gpg"})
+						else:
+							sortrepos[key].update({"Signed-By":"/etc/apt/trusted.gpg/lliurex-archive-keyring.gpg"})
 		repos=self._getDEB822(sortrepos)
 		return(repos)
 	#def getRepos
@@ -96,7 +103,7 @@ class _configManager():
 		repos822={}
 		for repokey,repodata in repos.items():
 			repo822=_repoFile()
-			fpath=os.path.join(CONFDIR,"{}.sources".format(repokey[-3]))
+			fpath=repodata["file"].replace(".json",".sources")
 			repo822.setFile(fpath.replace(".sources",".list"))
 			for repo in repodata.get("repos",[]):
 				repo="deb {}\n".format(repo)
@@ -104,9 +111,14 @@ class _configManager():
 			fcontent=repo822.getRepoDEB822()
 			repo822.setFile(fpath)
 			repo822.raw=fcontent
-			fcontent.update({"Name":repokey})
 			repos822.update({repokey:fcontent[list(fcontent.keys())[0]]})
 			repos822[repokey].update({"Name":repokey})
+			repos822[repokey].update({"file":fpath})
+			repos822[repokey].update({"format":"sources"})
+			repos822[repokey].update({"Description":repodata["Description"]})
+			if "Signed-By" in repodata.keys():
+				repos822[repokey].update({"Signed-By":repodata["Signed-By"]})
+			repos822[repokey].update({"available":repodata.get("available",True)})
 		return(repos822)
 		
 #class _configManager
