@@ -227,7 +227,7 @@ class _repoFile():
 		return(repo)
 	#def _loadFromSources
 
-	def writeFromData(self,data):
+	def loadFromData(self,data):
 		repo=_jRepo()
 		repo.file=data.get("file",self.file)
 		repo.type=data["Types"]
@@ -239,6 +239,10 @@ class _repoFile():
 		repo.uri=data["URIs"]
 		repo.format=data["format"]
 		repo.enabled=data["Enabled"]
+	#def loadFromData
+
+	def writeFromData(self,data):
+		repo=self.loadFromData(data)
 		return(repo.writeToFile())
 	#def _loadFromData
 
