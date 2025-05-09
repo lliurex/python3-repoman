@@ -100,13 +100,10 @@ class manager():
 		if len(repos)==0:
 			repos=self.getRepos()
 		repo={}
-		uri=""
 		for repouri,data in repos.items():
 			if data["Name"].lower().replace(" ","")==name.lower().replace(" ",""):
-				uri=repouri
+				repo=data.copy()
 				break
-		if uri!="":
-			repo=repos[uri]
 		return(repo)
 	#def getRepoByName
 
@@ -114,15 +111,10 @@ class manager():
 		if len(repos)==0:
 			repos=self.getRepos()
 		repo={}
-		if uri.endswith("/")==False:
-			uri+="/"
 		for repouri,data in repos.items():
-			if data["URIs"]==uri:
-				repouri=uri
+			if data["URIs"].rstrip("/")==uri.rstrip("/"):
+				repo=data.copy()
 				break
-			repouri=""
-		if repouri!="":
-			repo=repos[uri]
 		return(repo)
 	#def _getRepoByUri
 
