@@ -53,7 +53,7 @@ class _repoScrapper():
 			self._debug("Connected")
 		except Exception as e:
 			self._debug("Error connecting to {}: {}".format(url,e))
-			error=errorEnum.CONNECT_KO
+			error=errorEnum.CONNECTION_FAIL
 			error.message=("{}".format(e))
 			return(dirlist)
 		try:
