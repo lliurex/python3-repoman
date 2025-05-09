@@ -197,7 +197,7 @@ class manager():
 				frepo=_repoFile()
 				frepo.writeFromData(repo)
 		else:
-			error(5)
+			error=errorEnum.NOT_FOUND
 		return(error)
 	#def _writeRepo
 
