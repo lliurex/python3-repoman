@@ -65,23 +65,32 @@ class manager():
 		sortedRepos={}
 		uri=""
 		for name,data in mRepos.items():
-			URIs=data.get("repos",[])
-			if len(URIs)>0:
-				uri=URIs[0].split(" ")[0]
-				suite=URIs[0].split(" ")[1]
-				components=URIs[0].split(" ")[2:]
-				repo=self.getRepoByUri(uri,repos)
-				if len(repo)>0:
-					if suite in repo.get("Suites"):
-						#Same uri and same suite. Duplicated
-						repos.pop(repo["URIs"])
-					data["enabled"]=repo["Enabled"]
-			repo=self.getRepoByName(uri,repos)
-			if len(repo)<=0:
-				repo=self.getRepoByName(name,repos)
+			repo=self.getRepoByUri(data["URIs"],repos)
 			if len(repo)>0:
-				data["enabled"]=repo["Enabled"]
-				repos.pop(repo["URIs"])
+				if data["Suites"] == repo.get("Suites"):
+					#Same uri and same suite. Duplicated
+					if repo["URIs"] in repos.keys():
+						repos.pop(repo["URIs"])
+					if repo["Name"] in repos.keys():
+						repos.pop(repo["Name"])
+				data["Enabled"]=repo["Enabled"]
+				data["file"]=repo["file"]
+			popkey=repo.get("URIs","")
+			print("Search for URI in name {}".format(data["URIs"]))
+			repo=self.getRepoByName(data["URIs"],repos)
+			if len(repo)<=0:
+				print("Search for NAME in name {}".format(name))
+				repo=self.getRepoByName(name,repos)
+				popkey=repo.get("Name","")
+			if len(repo)>0:
+				data["Enabled"]=repo["Enabled"]
+				if os.path.exists(data["file"])==False:
+					data["Enabled"]=False
+				if popkey in repos.keys():
+					repos.pop(popkey)
+			else:
+				data["Enabled"]=False
+			data["file"]=repo.get("file",data["file"])
 			sortedRepos.update({name:data})
 		sortedRepos.update(repos)
 		return(sortedRepos)
@@ -107,8 +116,11 @@ class manager():
 		if len(repos)==0:
 			repos=self.getRepos()
 			repos.update(self._getManagedRepos())
-		for repokey in repos.keys():
+		for repokey,repodata in repos.items():
 			if repokey.lower()==name.lower():
+				repo=repos[repokey].copy()
+				break
+			elif repodata["Name"].lower()==name.lower():
 				repo=repos[repokey].copy()
 				break
 		return(repo)
@@ -117,8 +129,6 @@ class manager():
 	def getRepoByUri(self,uri,repos={}):
 		mrepos={}
 		repo={}
-		if len(repos)==0:
-			repos=self.getRepos(includeAll=True)
 		if len(repos)==0:
 			repos=self.getRepos()
 			repos.update(self._getManagedRepos())
@@ -191,7 +201,9 @@ class manager():
 
 	def _writeRepo(self,repo):
 		error=errorEnum(0)
-		fname=repo.get("file")
+		fname=None
+		if repo!=None:
+			fname=repo.get("file")
 		if fname!=None:
 			if os.path.exists(os.path.join(SOURCESDIR,os.path.basename(fname)))==True:
 				fname=os.path.join(SOURCESDIR,os.path.basename(fname))

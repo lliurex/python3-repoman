@@ -115,6 +115,16 @@ class _repoScrapper():
 				repoUrl=self._scrapDistribution(url,dirlist)
 			else:
 				repoUrl,repoData=self._scrapConf(session,url,dirlist)
+			if len(repoUrl)==0:
+			#There're files but no one seems to be a standard repo.
+			#Let's honor user desires and give the repo a chance to be added
+				fcomponent=os.path.join(url.rstrip("/"),component,"Packages")
+				try:
+					fcontent=requests.get(fcomponent)
+				except:
+					continue
+				if fcontent.ok==True:
+					components.append(component)
 		if repoData["name"]!="":
 			repoData["name"]=repoData["name"]+repoData["vers"].split(".")[0]
 		return (repoUrl,repoData)
@@ -252,11 +262,15 @@ class _repoScrapper():
 			repo=_repoFile()
 			if name=="" or name=="auto":
 				altname="{}_{}".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
-				name=repodata.get("name",altname)
+				name=repodata.get("name","")
+				if name=="":
+					name=altname
 			if name.endswith(".sources")==True:
 				name=name.replace(".sources","")
 			if desc=="" or desc=="auto":
-				desc=repodata.get("desc",url)
+				desc=repodata.get("desc","")
+				if desc=="":
+					desc=url
 			fpath=os.path.join(SOURCESDIR,"{}.sources".format(name))
 			repo.setFile(fpath.replace(".sources",".list"))
 			repo.raw="\n".join(fcontent)
