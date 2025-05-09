@@ -9,10 +9,6 @@ try:
 	from ._repoFile import _repoFile
 except:
 	from _repoFile import _repoFile
-try:
-	from . import _configManager
-except:
-	from _configManager import _configManager
 import requests
 import subprocess
 from requests.adapters import HTTPAdapter
