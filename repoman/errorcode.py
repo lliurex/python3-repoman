@@ -15,6 +15,8 @@ class errorEnum(Enum):
 	FILE_READ=10
 	YAML_WRITE=11
 	YAML_READ=12
+	ADD_FAILED=13
+	CONNECTION_FAIL=14
 
 	@classmethod
 	def toText(self):

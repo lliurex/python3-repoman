@@ -183,7 +183,7 @@ class manager():
 		else:
 			scrapper=_repoScrapper()
 			error=scrapper.addRepo(uri,name,desc,signedby)
-		return(errorEnum)
+		return(error)
 	#def addRepo
 
 	def _writeRepo(self,repo):
