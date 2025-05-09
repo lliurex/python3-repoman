@@ -3,6 +3,10 @@ import os,sys,shutil
 import subprocess
 import yaml
 try:
+	from .errorcode import errorEnum
+except:
+	from errorcode import errorEnum
+try:
 	from ._repoFile import _repoFile
 except:
 	from _repoFile import _repoFile
@@ -31,11 +35,14 @@ class manager():
 	#def _debug
 
 	def updateRepos(self):
+		error=errorEnum(0)
 		cmd=["apt","update"]
 		try:
 			subprocess.run(cmd)
 		except Exception as e:
-			print("ERROR: {}".format(e))
+			error=errorEnum(6)
+		return(error)
+
 	#def updateRepos
 	
 	def getRepos(self,includeAll=False):
@@ -169,19 +176,18 @@ class manager():
 	#def disableAll(self):
 
 	def addRepo(self,url,name="",desc="",signedby=""):
-		err=0
+		error=errorEnum.NO_ERROR
 		uri=url.replace("deb ","").strip()
 		if len(self.getRepoByUri(uri))>0:
-			print("Already present")
-			err=1
+			error=errorEnum.ALREADY_PRESENT
 		else:
 			scrapper=_repoScrapper()
-			err=scrapper.addRepo(uri,name,desc,signedby)
-		return(err)
+			error=scrapper.addRepo(uri,name,desc,signedby)
+		return(errorEnum)
 	#def addRepo
 
 	def _writeRepo(self,repo):
-		retVal=1
+		error=errorEnum(0)
 		fname=repo.get("file")
 		if fname!=None:
 			if os.path.exists(os.path.join(SOURCESDIR,os.path.basename(fname)))==True:
@@ -190,8 +196,9 @@ class manager():
 			if len(fname)>0:
 				frepo=_repoFile()
 				frepo.writeFromData(repo)
-				retVal=0
-		return(retVal)
+		else:
+			error(5)
+		return(error)
 	#def _writeRepo
 
 	def _generateConfigFromSources(self):
@@ -240,6 +247,7 @@ class manager():
 	#def chkPinning
 
 	def reversePinning(self,pinfile=""):
+		error=errorEnum(0)
 		fcontent=""
 		keys=["Package","Pin","Pin-Priority"]
 		if len(pinfile)<=0:
@@ -251,6 +259,8 @@ class manager():
 		if os.path.exists(sfile):
 			with open(sfile,"r") as f:
 				fcontent=f.read()
+		else:
+			error
 		content=[]
 		for line in fcontent.split("\n"):
 			raw=line.strip()

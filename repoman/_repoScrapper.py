@@ -2,6 +2,10 @@
 import os,shutil
 import tempfile
 try:
+	from .errorcode import errorEnum
+except:
+	from errorcode import errorEnum
+try:
 	from ._repoFile import _repoFile
 except:
 	from _repoFile import _repoFile
@@ -49,6 +53,8 @@ class _repoScrapper():
 			self._debug("Connected")
 		except Exception as e:
 			self._debug("Error connecting to {}: {}".format(url,e))
+			error=errorEnum.CONNECT_KO
+			error.message=("{}".format(e))
 			return(dirlist)
 		try:
 			content=req.text
@@ -215,14 +221,15 @@ class _repoScrapper():
 		return(signedby)
 
 	def addRepo(self,url,name="",desc="",signedby=""):
-		err=1
+		error=errorEnum.NO_ERROR
 		desc=desc.strip()
 		debparms=""
 		if url.endswith("/")==False:
 			url+="/"
 		decompurl=url.split(":/")
-		jfile=""
-		if len(decompurl)>1:
+		if len(decompurl)<=1:
+			error=errorEnum.MALFORMED
+		else:
 			repodata={}
 			data=decompurl[-1].split(" ")
 			if len(decompurl[0].split(" "))>1:
@@ -248,17 +255,12 @@ class _repoScrapper():
 					fcontent,repodata=self._repositoryScrap(session,deburl)
 			repo=_repoFile()
 			if name=="" or name=="auto":
-				if repodata.get("name","")!="":
-					name=repodata["name"]
-				else:
-					name="{}_{}".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
+				altname="{}_{}".format(url.rstrip("/").split("/")[-2],url.rstrip("/").split("/")[-1])
+				name=repodata.get("name",altname)
 			if name.endswith(".sources")==True:
 				name=name.replace(".sources","")
 			if desc=="" or desc=="auto":
-				if repodata.get("desc","")!="":
-					desc=repodata["desc"]
-				else:
-					desc=url
+				desc=repodata.get("desc",url)
 			fpath=os.path.join(SOURCESDIR,"{}.sources".format(name))
 			repo.setFile(fpath.replace(".sources",".list"))
 			repo.raw="\n".join(fcontent)
@@ -269,14 +271,14 @@ class _repoScrapper():
 				if url.endswith("/")==False:
 					url+="/"
 			if url not in fcontent.keys():
-				return 1
-			fcontent[url]["format"]="sources"
-			fcontent[url]["file"]=fpath
-			fcontent[url]["Name"]=name
-			fcontent[url]["Description"]=desc
-			if signedby!="":
-				fcontent[url]["Signed-By"]=self._getSignedBy(signedby)
-			repo.writeFromData(fcontent[url])
-			err=0
-		return(err)
+				error=errorEnum.URL_NOT_FOUND
+			else:
+				fcontent[url]["format"]="sources"
+				fcontent[url]["file"]=fpath
+				fcontent[url]["Name"]=name
+				fcontent[url]["Description"]=desc
+				if signedby!="":
+					fcontent[url]["Signed-By"]=self._getSignedBy(signedby)
+				error=repo.writeFromData(fcontent[url])
+		return(error)
 	#def addRepo
