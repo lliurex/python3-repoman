@@ -1,6 +1,10 @@
 #/usr/bin/env python3
 import os,sys,shutil
 import yaml
+try:
+	from .errorcode import errorEnum
+except:
+	from errorcode import errorEnum
 
 class _jRepo():
 	def __init__(self):
@@ -91,7 +95,7 @@ class _jRepo():
 	#def _generateLinesFromSerial
 
 	def writeToFile(self):
-		err=0
+		error=errorEnum.NO_ERROR
 		serial=self.serialize()
 		frepo=serial.get("file")
 		if serial["Signed-By"]=="":
@@ -109,9 +113,10 @@ class _jRepo():
 		try:
 			with open(frepo,"w") as f:
 				f.write(lines)
-		except:
-			err=1
-		return(err)
+		except Exception as e:
+			error=errorEnum.FILE_WRITE
+			error.message=("{}".format(e))
+		return(error)
 	#def writeToFile(self):
 #class _jRepo
 
@@ -124,15 +129,18 @@ class _repoFile():
 	#def __init__
 
 	def setFile(self,fName):
+		error=errorEnum.NO_ERROR
 		self.file=fName
 		if os.path.exists(fName):
 			try:
 				with open(fName,"r") as f:
 					fcontent=f.read()
 			except Exception as e:
-				print("Err reading {}: {}".format(fName,e))
+				error=errorEnum.FILE_READ
+				error.message=("{}".format(e))
 			finally:
 				self.raw=fcontent
+		return(error)
 	#def setFile
 
 	def getRepoDEB822(self):
@@ -202,7 +210,8 @@ class _repoFile():
 		try:
 			yFile=yaml.safe_load(self.raw)
 		except Exception as e:
-			print("Not a valid file: {} -> {}".format(self.file,e))
+			error=errorEnum.YAML_READ
+			error.message=("{}".format(e))
 		finally:
 			if "Enabled" not in yFile.keys():
 				yFile["Enabled"]=True
