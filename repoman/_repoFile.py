@@ -239,6 +239,7 @@ class _repoFile():
 		repo.uri=data["URIs"]
 		repo.format=data["format"]
 		repo.enabled=data["Enabled"]
+		return(repo)
 	#def loadFromData
 
 	def writeFromData(self,data):
