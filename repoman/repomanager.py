@@ -61,10 +61,10 @@ class manager():
 	#def getRepos
 
 	def _getAllRepos(self,repos):
-		mRepos=_configManager()
+		mRepos=self._getManagedRepos()
 		sortedRepos={}
 		uri=""
-		for name,data in mRepos.getRepos().items():
+		for name,data in mRepos.items():
 			URIs=data.get("repos",[])
 			if len(URIs)>0:
 				uri=URIs[0].split(" ")[0]
@@ -87,6 +87,11 @@ class manager():
 		return(sortedRepos)
 	#def _sortRepos
 
+	def _getManagedRepos(self):
+		mRepos=_configManager()
+		return(mRepos.getRepos())
+	#def _getManagedRepos(self):
+
 	def _getReposByState(self,state=True):
 		configuredRepos=self.getRepos()
 		repos={}
@@ -97,32 +102,30 @@ class manager():
 	#def _getReposByState
 
 	def getRepoByName(self,name,repos={}):
+		mrepos={}
+		repo={}
 		if len(repos)==0:
 			repos=self.getRepos()
-		repo={}
-		uri=""
-		for repouri,data in repos.items():
-			if data["Name"].lower().replace(" ","")==name.lower().replace(" ",""):
-				uri=repouri
+			repos.update(self._getManagedRepos())
+		for repokey in repos.keys():
+			if repokey.lower()==name.lower():
+				repo=repos[repokey].copy()
 				break
-		if uri!="":
-			repo=repos[uri]
 		return(repo)
 	#def getRepoByName
 
 	def getRepoByUri(self,uri,repos={}):
+		mrepos={}
+		repo={}
+		if len(repos)==0:
+			repos=self.getRepos(includeAll=True)
 		if len(repos)==0:
 			repos=self.getRepos()
-		repo={}
-		if uri.endswith("/")==False:
-			uri+="/"
-		for repouri,data in repos.items():
-			if data["URIs"]==uri:
-				repouri=uri
+			repos.update(self._getManagedRepos())
+		for repokey,repodata in repos.items():
+			if repodata.get("URIs").rstrip("/")==uri.rstrip("/"):
+				repo=repos[repokey].copy()
 				break
-			repouri=""
-		if repouri!="":
-			repo=repos[uri]
 		return(repo)
 	#def _getRepoByUri
 
