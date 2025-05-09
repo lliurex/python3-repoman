@@ -116,13 +116,15 @@ class _repoScrapper():
 			else:
 				repoUrl,repoData=self._scrapConf(session,url,dirlist)
 			if len(repoUrl)==0:
-			#There're files but no one seems to be a standard repo.
+			#There're files but no one seems from a standard repo.
 			#Let's honor user desires and give the repo a chance to be added
-				fcomponent=os.path.join(url.rstrip("/"),component,"Packages")
-				try:
-					fcontent=requests.get(fcomponent)
-				except:
-					continue
+				components=["noble-cran40"]
+				for component in components:
+					fcomponent=os.path.join(url.rstrip("/"),component,"Packages")
+					try:
+						fcontent=requests.get(fcomponent)
+					except:
+						continue
 				if fcontent.ok==True:
 					components.append(component)
 		if repoData["name"]!="":
