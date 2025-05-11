@@ -16,6 +16,7 @@ except:
 
 CONFDIR="/usr/share/repoman/sources.d"
 SOURCESDIR="/etc/apt/sources.list.d"
+TRUSTEDDIR="/etc/apt/trusted.gpg.d"
 
 class _configManager():
 	def __init__(self):
@@ -92,9 +93,10 @@ class _configManager():
 						sortrepos[key].update({"available":self._isMirrorEnabled()})
 					if "mirror" not in key.lower():
 						if "ubuntu" in key.lower():
-							sortrepos[key].update({"Signed-By":"/etc/apt/trusted.gpg.d/ubuntu-keyring-2018-archive.gpg"})
+							tfile="ubuntu-keyring-2018-archive.gpg"
 						else:
-							sortrepos[key].update({"Signed-By":"/etc/apt/trusted.gpg/lliurex-archive-keyring.gpg"})
+							tfile="lliurex-archive-keyring.gpg"
+						sortrepos[key].update({"Signed-By":os.path.join(TRUSTEDDIR,tfile)})
 		repos=self._getDEB822(sortrepos)
 		return(repos)
 	#def getRepos
