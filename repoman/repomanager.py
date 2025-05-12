@@ -76,10 +76,8 @@ class manager():
 				data["Enabled"]=repo["Enabled"]
 				data["file"]=repo["file"]
 			popkey=repo.get("URIs","")
-			print("Search for URI in name {}".format(data["URIs"]))
 			repo=self.getRepoByName(data["URIs"],repos)
 			if len(repo)<=0:
-				print("Search for NAME in name {}".format(name))
 				repo=self.getRepoByName(name,repos)
 				popkey=repo.get("Name","")
 			if len(repo)>0:
