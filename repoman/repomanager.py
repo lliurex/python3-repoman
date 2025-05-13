@@ -27,6 +27,12 @@ TRUSTEDDIR=os.path.join(BASEDIR,"trusted.gpg.d")
 class manager():
 	def __init__(self):
 		self.dbg=True
+		try:
+			release=subprocess.check_output(["lliurex-version","-n"],encoding="utf8").strip().replace("\t"," ")
+			release=release.split(".")[0]
+		except:
+			release=25
+		self.llxRelease=release
 	#def __init__
 
 	def _debug(self,msg):
@@ -205,6 +211,11 @@ class manager():
 		if fname!=None:
 			if os.path.exists(os.path.join(SOURCESDIR,os.path.basename(fname)))==True:
 				fname=os.path.join(SOURCESDIR,os.path.basename(fname))
+				repo["file"]=fname
+			if os.path.basename(fname)=="lliurex_{}.sources".format(self.llxRelease):
+				if os.path.exists(fname):
+					os.unlink(fname)
+				fname=fname.replace("_{}".format(self.llxRelease),"")
 				repo["file"]=fname
 			if len(fname)>0:
 				frepo=_repoFile()

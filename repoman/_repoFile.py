@@ -110,6 +110,7 @@ class _jRepo():
 			lines=yaml.dump(serial)
 		else:
 			lines=self._generateLinesFromSerial(serial)
+
 		try:
 			with open(frepo,"w") as f:
 				f.write(lines)
