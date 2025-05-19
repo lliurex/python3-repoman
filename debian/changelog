@@ -1,3 +1,9 @@
+python3-repoman (1.3.1-1lliurex25) noble; urgency=medium
+
+  * Try to fix malformed yaml
+
+ -- Juanma1980 <juanma1980@gmail.com>  Mon, 19 May 2025 15:11:50 +0200
+
 python3-repoman (1.3.1-0lliurex25) noble; urgency=medium
 
   * Support for DEB822. Old list format as deprecated
