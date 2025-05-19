@@ -211,8 +211,17 @@ class _repoFile():
 		try:
 			yFile=yaml.safe_load(self.raw)
 		except Exception as e:
-			error=errorEnum.YAML_READ
-			error.message=("{}".format(e))
+			raw=[]
+			for line in self.raw.split("\n"):
+				if ":" in line:
+					line="{}: {}".format(line.strip().split(":",1)[0],line.strip().split(":",1)[-1])
+					raw.append(line)
+			try:
+				yFile=yaml.safe_load("\n".join(raw))
+			except:
+				error=errorEnum.YAML_READ
+				error.message=("{}".format(e))
+				return({})
 		finally:
 			if "Enabled" not in yFile.keys():
 				yFile["Enabled"]=True
