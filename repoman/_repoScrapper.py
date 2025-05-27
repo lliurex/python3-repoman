@@ -185,7 +185,7 @@ class _repoScrapper():
 			for repodir in dirlist:
 				signedby=""
 				release=repodir.replace('/','').lstrip()
-				if release.endswith(".gpp"):
+				if release.endswith(".gpg"):
 					signedby="[Signed-by={}] ".format(release)
 				elif release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
@@ -291,6 +291,9 @@ class _repoScrapper():
 				fcontent[url]["Description"]=desc
 				if signedby!="":
 					fcontent[url]["Signed-By"]=self._getSignedBy(signedby)
+				else:
+					fcontent[url]["Trusted"]="yes"
+
 				error=repo.writeFromData(fcontent[url])
 		return(error)
 	#def addRepo

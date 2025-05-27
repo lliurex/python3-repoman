@@ -58,6 +58,8 @@ class _jRepo():
 					line=line.replace("#","")
 				if serial.get("Signed-By","")!="":
 					line+=" [Signed-By={}]".format(serial["Signed-By"].replace("\"","").replace("\'",""))
+				else:
+					line+=" [Trusted=yes]"
 				line+=" {}".format(serial["URIs"])
 				line+=" {}".format(suite)
 				line+=" {}".format(serial["Components"])
@@ -100,6 +102,7 @@ class _jRepo():
 		frepo=serial.get("file")
 		if serial["Signed-By"]=="":
 			serial.pop("Signed-By")
+			serial["Trusted"]="yes"
 		if isinstance(serial["Components"],list):
 			serial["Components"]=" ".join(serial["Components"])
 		if serial["format"]=="sources":
@@ -108,6 +111,8 @@ class _jRepo():
 			serial.pop("file")
 			serial.pop("info")
 			lines=yaml.dump(serial)
+			if "Trusted" in serial.keys():
+				lines=lines.replace("\'yes\'","yes")
 		else:
 			lines=self._generateLinesFromSerial(serial)
 
