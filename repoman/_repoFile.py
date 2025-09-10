@@ -236,7 +236,7 @@ class _repoFile():
 			yFile["format"]="sources"
 			fields=["Components","Suites"]
 			for f in fields:
-				yFile[f]=yFile[f].split()
+				yFile[f]=yFile.get(f,"").split()
 				yFile[f].sort()
 			repo={yFile["URIs"]:yFile.copy()}
 		return(repo)
