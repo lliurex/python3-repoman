@@ -188,11 +188,12 @@ class _repoFile():
 			#Process extradata
 			if len(data)>0:
 				dataF=data.replace("[","").replace("]","").split(",")
-				for field in dataF:
-					key,value=field.split("=")
-					key=key.lower().split("-")[0].lower()
-					if key=="signed":
-						repo.signed=value.replace("\"","").replace("\'","")
+				for data in dataF:
+					for field in data.split(" "):
+						key,value=field.split("=")
+						key=key.lower().split("-")[0].lower()
+						if key=="signed":
+							repo.signed=value.replace("\"","").replace("\'","")
 			repo.name="{}_{}".format(repo.uri.rstrip("/").split("/")[-2],repo.uri.rstrip("/").split("/")[-1])
 			repo.format="list"
 			if repo.uri in repos:
