@@ -1,3 +1,10 @@
+python3-repoman (1.3.4-1lliurex25) noble; urgency=medium
+
+  * Improve key management
+  * Fix reading malformed files
+
+ -- Juanma1980 <juanma1980@gmail.com>  Sun, 12 Oct 2025 11:25:57 +0200
+
 python3-repoman (1.3.4-0lliurex25) noble; urgency=medium
 
   * Fix multidef line in old list format
