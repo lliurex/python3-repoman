@@ -111,6 +111,8 @@ class _configManager():
 				repo="deb {}\n".format(repo)
 				repo822.raw+=repo
 			fcontent=repo822.getRepoDEB822()
+			if len(fcontent)==0:
+				continue
 			repo822.setFile(fpath)
 			repo822.raw=fcontent
 			repos822.update({repokey:fcontent[list(fcontent.keys())[0]]})

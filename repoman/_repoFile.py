@@ -217,6 +217,7 @@ class _repoFile():
 		try:
 			yFile=yaml.safe_load(self.raw)
 		except Exception as e:
+			print(e)
 			raw=[]
 			for line in self.raw.split("\n"):
 				if ":" in line:
@@ -224,22 +225,23 @@ class _repoFile():
 					raw.append(line)
 			try:
 				yFile=yaml.safe_load("\n".join(raw))
-			except:
+			except Exception as e:
 				error=errorEnum.YAML_READ
 				error.message=("{}".format(e))
 				return({})
 		finally:
-			if "Enabled" not in yFile.keys():
-				yFile["Enabled"]=True
-			yFile["file"]=self.file
-			if yFile.get("Name","")=="":
-				yFile["Name"]="{}_{}".format(yFile["URIs"].rstrip("/").split("/")[-2],yFile["URIs"].rstrip("/").split("/")[-1])
-			yFile["format"]="sources"
-			fields=["Components","Suites"]
-			for f in fields:
-				yFile[f]=yFile.get(f,"").split()
-				yFile[f].sort()
-			repo={yFile["URIs"]:yFile.copy()}
+			if isinstance(yFile,dict):
+				if "Enabled" not in yFile.keys():
+					yFile["Enabled"]=True
+				yFile["file"]=self.file
+				if yFile.get("Name","")=="":
+					yFile["Name"]="{}_{}".format(yFile["URIs"].rstrip("/").split("/")[-2],yFile["URIs"].rstrip("/").split("/")[-1])
+				yFile["format"]="sources"
+				fields=["Components","Suites"]
+				for f in fields:
+					yFile[f]=yFile.get(f,"").split()
+					yFile[f].sort()
+				repo={yFile["URIs"]:yFile.copy()}
 		return(repo)
 	#def _loadFromSources
 
