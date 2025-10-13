@@ -190,7 +190,12 @@ class _repoFile():
 				dataF=data.replace("[","").replace("]","").split(",")
 				for data in dataF:
 					for field in data.split(" "):
-						key,value=field.split("=")
+						try:
+							key,value=field.split("=")
+						except Exception as e:
+							print("Malformed value")
+							print("Was {}".format(e))
+							continue
 						key=key.lower().split("-")[0].lower()
 						if key=="signed":
 							repo.signed=value.replace("\"","").replace("\'","")
