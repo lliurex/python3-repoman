@@ -144,8 +144,10 @@ class _repoFile():
 			except Exception as e:
 				error=errorEnum.FILE_READ
 				error.message=("{}".format(e))
+				print(e)
 			finally:
-				self.raw=fcontent
+				if error==errorEnum.NO_ERROR:
+					self.raw=fcontent
 		return(error)
 	#def setFile
 
@@ -189,12 +191,12 @@ class _repoFile():
 			if len(data)>0:
 				dataF=data.replace("[","").replace("]","").split(",")
 				for data in dataF:
-					for field in data.split(" "):
+					for field in data.strip().split(" "):
 						try:
 							key,value=field.split("=")
 						except Exception as e:
 							print("Malformed value")
-							print("Was {}".format(e))
+							print("Err {}: {}".format(self.file,field))
 							continue
 						key=key.lower().split("-")[0].lower()
 						if key=="signed":
