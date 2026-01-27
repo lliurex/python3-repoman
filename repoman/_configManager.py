@@ -123,6 +123,12 @@ class _configManager():
 			if "Signed-By" in repodata.keys():
 				repos822[repokey].update({"Signed-By":repodata["Signed-By"]})
 			repos822[repokey].update({"available":repodata.get("available",True)})
+			if "URIs" not in repos822[repokey]:
+				for k in repos822[repokey].keys():
+					if k.lower()=="uris":
+						repos822[repokey]["URIs"]=repos822[repokey][k]
+						repos822[repokey].pop(k)
+						break
 		return(repos822)
 		
 #class _configManager
