@@ -241,6 +241,13 @@ class _repoFile():
 				if "Enabled" not in yFile.keys():
 					yFile["Enabled"]=True
 				yFile["file"]=self.file
+				#Fix malformed URIs key
+				if "URIs" not in yFile.keys():
+					for k in yFile.keys():
+						if k.lower()=="uris":
+							yFile["URIs"]=yFile[k]
+							yFile.pop(k)
+							break
 				if yFile.get("Name","")=="":
 					yFile["Name"]="{}_{}".format(yFile["URIs"].rstrip("/").split("/")[-2],yFile["URIs"].rstrip("/").split("/")[-1])
 				yFile["format"]="sources"
