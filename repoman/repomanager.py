@@ -2,12 +2,14 @@
 import os,sys,shutil
 import json
 import subprocess
-from appconfig import appConfigN4d
+try:
+	from appconfig import appConfigN4d
+except:
+	appConfigN4d=None
 import requests
 import subprocess
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from rebost import store
 from bs4 import BeautifulSoup
 
 
@@ -16,7 +18,7 @@ class manager():
 		self.sourcesFile="/etc/apt/sources.list"
 		self.sourcesDir="/etc/apt/sources.list.d"
 		self.managerDir="/usr/share/repoman/sources.d"
-		self.dbg=True
+		self.dbg=False
 	#def __init__
 	
 	def _debug(self,msg):
@@ -48,6 +50,8 @@ class manager():
 		if len(repoUrl)>0 and repoline.split(":/",1)[1].strip().count(" ") > 0:
 			repoRelease="{}".format(repoline.split(":/",1)[1].split(" ")[1])
 			if len(repoRelease)>0:
+				if repoUrl[-1]!="/":
+					repoUrl+="/"
 				if repoUrl not in data.keys():
 					data[repoUrl]={}
 				if repoRelease not in data[repoUrl].keys():
@@ -56,7 +60,11 @@ class manager():
 				if repoComponents.count("")>0:
 					repoComponents.remove("")
 				repoComponents.sort()
-				name="{0}_{1}".format(os.path.basename(file),repoUrl.strip("/").split("/")[-1])
+				url=repoUrl.strip("/").split("/")
+				if len(url)>2:
+					name="{0}.{1}".format(url[2],url[-1])
+				else:
+					name="{0}_{1}".format(os.path.basename(file),url[-1])
 				if "deb-src" in repoType:
 					repoRelease+="-src"
 				data[repoUrl][repoRelease]={"components":repoComponents,"file":file,"raw":repoline,"name":name,"desc":""}
@@ -127,6 +135,8 @@ class manager():
 			if key.lower()=="uris":
 				cont+=1
 				url=data
+				if url[-1]!="/":
+					url+="/"
 			if key.lower()=="suites":
 				cont+=1
 				releases=data
@@ -157,6 +167,7 @@ class manager():
 
 	def readSourcesFile(self,sourcesF):
 		data={}
+		self._debug("Read Sources {}".format(sourcesF))
 		if os.path.exists(sourcesF):
 			fcontent=self._getFileContent(sourcesF)
 			data=self._jsonFromContents(sourcesF,fcontent)
@@ -172,7 +183,7 @@ class manager():
 				if f.path.endswith(".list") or f.path.endswith(".sources"):
 					data=self.readSourcesFile(f.path)
 					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
+						if not dataurl in repos.keys():
 							repos.update({dataurl:dataitems})
 		return(repos)
 	#def _readSourcesDir
@@ -192,6 +203,8 @@ class manager():
 			for fline in repolines:
 				dataline=self._formatRepoLine(fline)
 				for url,urldata in dataline.items():
+					if url.endswith("/")==False:
+						url+="/"
 					if url not in data.keys():
 						data[url]={}
 					for release in urldata.keys():
@@ -202,7 +215,9 @@ class manager():
 			for url,urldata in data.items():
 				for release,releasedata in urldata.items():
 					releasedata["desc"]=repodata.get("desc","")
-					releasedata["file"]=self._getSourcesPathFromJson(jsonF)
+					releasedata["file"]=repodata.get("file","")
+					if releasedata.get("file","")=="":
+						releasedata["file"]=self._getSourcesPathFromJson(jsonF)
 					name=reponame
 					if reponame.split("_")[0]==os.path.basename(releasedata["file"]):
 						if len(reponame.split("_"))>1:
@@ -215,12 +230,18 @@ class manager():
 	#def _readJsonFile
 
 	def writeJsonFile(self,jfile,content):
+		sw=False
 		if os.path.isdir(os.path.dirname(jfile))==True:
-			with open(jfile,'w') as f:
-				json.dump(content,f,indent=4)
+			try:
+				with open(jfile,'w') as f:
+					json.dump(content,f,indent=4)
+				sw=True
+			except:
+				print("BIG FAIL: {} isn't a regular file".format(jfile))
+		return(sw)
 	#def writeJsonFile
 
-	def _writeJsonFromSources(self,file,content):
+	def _writeJsonFromSources(self,file,content,**kwargs):
 		sourcesFormat=self._getSourcesFormat(content)
 		if sourcesFormat==1:
 			content=self._getRepoType1Contents(file,content)
@@ -248,15 +269,23 @@ class manager():
 			url=list(data.keys())[0]
 			release=list(data[url].keys())[0]
 			name=data[url][release].get("name",os.path.basename(file)).replace(".json","")
-			jcontent[name]={"changed":False,"desc":"","enabled":True,"repos":content}
+			name=kwargs.get("name",name)
+			desc=kwargs.get("desc","")
+			jcontent[name]={"changed":False,"desc":desc,"enabled":True,"repos":content}
+		if name in jcontent.keys():
+			jcontent[name].update({"file":file})
+		self._debug("Attempting to write {}".format(jfile))
+		self._debug(jcontent)
+		self._debug("< EOF")
 		self.writeJsonFile(jfile,jcontent)
+		return(jfile)
 	#def _writeJsonFromSources
 
 	def _writeSourceFile(self,file,content):
 		#Sort content
-		sortcontent=self.sortContents(content)
+		sortContent=self.sortContents(content)
 		with open(file,"w") as f:
-			for line in sortcontent:
+			for line in sortContent:
 				line=self._sanitizeString(line)
 				if len(line)>0:
 				#	if not line.startswith("deb") and line[0]!="#":
@@ -274,9 +303,11 @@ class manager():
 					repos.update(self._readManagerDir(f.path))
 				else:
 					data=self._readJsonFile(f.path)
-					for dataurl,dataitems in data.items():
-						if len(repos.get(dataurl,''))==0:
-							repos.update({dataurl:dataitems})
+					for repoUrl,repoItems in data.items():
+						if len(repos.get(repoUrl,''))==0:
+							if repoUrl[-1]!="/":
+								repoUrl+="/"
+							repos.update({repoUrl:repoItems})
 		return(repos)
 	#def _readManagerDir(self,dirF):
 
@@ -291,6 +322,7 @@ class manager():
 
 	def _getDefaultJsonFromDefaultRepo(self,repoline):
 		file=""
+		self._debug("Get {} for searching".format(repoline))
 		if "http://lliurex.net" in repoline:
 			for f in os.listdir(os.path.join(self.managerDir,"default")):
 				if f.lower().startswith("lliurex_") and "mirror" not in f.lower():
@@ -426,6 +458,7 @@ class manager():
 
 	def getJsonPathFromSources(self,file,content,defaultRepoName=""):
 		jfile=""
+		self._debug("Searching for {}".format(file))
 		if (file.endswith(".list") or file.endswith(".sources")) and (file!=self.sourcesFile):
 			jfile=os.path.join(self.managerDir,os.path.basename(file.replace(".list",".json").replace(".sources",".json")))
 			if os.path.exists(jfile)==False:
@@ -436,6 +469,10 @@ class manager():
 		elif file==self.sourcesFile:
 			jfile=self._getDefaultJsonFromDefaultRepo(content[0])
 			jfile=os.path.join(self.managerDir,jfile)
+		if jfile=="" or os.path.isdir(jfile)==True:
+			#Assign new file
+			fname="{}.json".format(content[0].split(":/")[-1].split(" ")[0].replace("/","_"))
+			jfile=os.path.join(self.managerDir,fname)
 		return(jfile)
 	#def getJsonPathFromSources
 
@@ -445,7 +482,7 @@ class manager():
 		for repo in managerRepos.keys():
 			if repo==url:
 				for release,data in managerRepos[url].items():
-					name="{0}".format(data.get("name",""))
+					name=data.get("name","")
 					if len(name)<=0:
 						name="{0}_{1}".format(data.get("file",""),url.strip("/").split("/")[-1])
 					desc=data.get("desc","")
@@ -495,10 +532,10 @@ class manager():
 				available=self.isMirrorEnabled()
 			for release in managerRepos[url].keys():
 				managerRepos[url][release].update({"name":name,"desc":desc,"available":available})
-				if enabled==True:
-					components=list(set(managerRepos[url][release]["components"]))
-					extracomps=extraRepos.get(url,{}).get(release,{}).get("components",[])
-					enabled=self._compareRepos(components,extracomps)
+				#if enabled==True:
+				components=list(set(managerRepos[url][release]["components"]))
+				extracomps=extraRepos.get(url,{}).get(release,{}).get("components",[])
+				enabled=self._compareRepos(components,extracomps)
 				managerRepos[url][release].update({"enabled":enabled})
 			repos[url]=managerRepos[url]
 		sortrepos=self._sortRepos(repos)
@@ -561,9 +598,9 @@ class manager():
 					break
 		if file.endswith(".json"):
 			file=self._getSourcesPathFromJson(file)
+
 		if len(file)>0:
 			fcontent=self._getFileContent(file)
-
 			if self._getSourcesFormat(fcontent.split("\n"))==1:
 				tmpcontent=self._getRepoType1Contents(file,fcontent.split("\n"))
 				tmprepos=[]
@@ -576,6 +613,7 @@ class manager():
 			delcontent=[]
 			for line in fcontent.split("\n"):
 				line=self._sanitizeString(line)
+				url=url.rstrip("/")
 				if (url.replace(" ","") not in line.replace(" ","")) and len(line)>0:
 					if line.startswith("deb")==False and line.startswith("#")==False:
 						line="deb {}".format(line)
@@ -613,10 +651,14 @@ class manager():
 			file=self._getSourcesPathFromJson(file)
 		if len(file)>0:
 			newcontent=[]
+			matchUrl=url.replace(" ","").strip()
 			fcontent=self._getFileContent(file)
 			for line in fcontent.split("\n"):
-				if url.replace(" ","").strip() not in line.replace(" ","").strip() and len(line.strip())>0:
-					newcontent.append(line)
+				fLine=self._formatRepoLine(line)
+				lineMatch=list(fLine.keys())
+				if len(lineMatch)>0:
+					if not (matchUrl in  lineMatch[0]) and (len(lineMatch[0])>0):
+						newcontent.append(line)
 			newcontent.extend(repos)
 			self._writeSourceFile(file,newcontent)
 	#def enableRepoByName(self,name):
@@ -653,7 +695,7 @@ class manager():
 	def _releaseScrap(self,session,url):
 		knowedComponents=['main','universe','multiverse','contrib','non-free','restricted','oss','non-oss','partner','preschool']
 		components=[]
-		self._debug("Reading {}".format(url))
+		self._debug("Release Reading {}".format(url))
 		releaseDirs=self._readServerDir(session,url)
 		for component in releaseDirs:
 			component=component.replace('/','').lstrip()
@@ -665,8 +707,13 @@ class manager():
 
 	def _repositoryScrap(self,session,url):
 		repoUrl=[]
-		knowedReleases=["jammy","jammy-updates","jammy-security","stable","unstable"]
-		self._debug("Reading {}".format(url))
+		cmd=["lsb_release","-c"]
+		output=subprocess.check_output(cmd,encoding="utf8").strip().replace("\t"," ")
+		codename=output.split(" ")[-1]
+		knowedReleases=[codename,"{0}-updates".format(codename),"{0}-security".format(codename),"stable","unstable"]
+		lastChance=url.rstrip("/").split("/")[-1]
+		lastChanceReleases=[lastChance,"{0}-updates".format(lastChance),"{0}-security".format(lastChance)]
+		self._debug("Repo Reading {}".format(url))
 		dirlist=self._readServerDir(session,url)
 		if "dists/" in dirlist:
 			url=os.path.join(url,"dists/")
@@ -677,10 +724,10 @@ class manager():
 		if url.endswith('/dists/'):
 			for repodir in dirlist:
 				release=repodir.replace('/','').lstrip()
-				if release in knowedReleases:
+				if release in knowedReleases or release in lastChanceReleases:
 					urlRelease=os.path.join(url,release)
 					components=self._releaseScrap(session,urlRelease)
-					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists',''),release,' '.join(components)))
+					repoUrl.append("deb {0} {1} {2}".format(url.replace('dists/',''),release,' '.join(components)))
 				else:
 					self._debug("{0} not found in {1}".format(repodir,knowedReleases))
 		return repoUrl
@@ -700,7 +747,9 @@ class manager():
 		url=url.replace("deb ","")
 		debparms=""
 		decompurl=url.split(":/")
+		jfile=""
 		if len(decompurl)>1:
+			beforAdd=self.getRepos()
 			data=decompurl[-1].split(" ")
 			if len(decompurl[0].split(" "))>1:
 				debparms="{} ".format(" ".join(decompurl[0].split(" ")[:-1]))
@@ -723,12 +772,20 @@ class manager():
 					fcontent=["deb {0} {1}".format(url.replace('dists',''),' '.join(components))]
 				else:
 					fcontent=self._repositoryScrap(session,deburl)
-			sourceF=os.path.join(self.sourcesDir,"{}.list".format(name))
-			jsonF=os.path.join(self.managerDir,"{}.json".format(name))
+			sourceF=os.path.join(self.sourcesDir,"{}.list".format(name.replace(" ","_")))
+			jsonF=os.path.join(self.managerDir,"{}.json".format(name.replace(" ","_")))
 			if len(fcontent)>0:
 				self._writeSourceFile(sourceF,fcontent)
-				self._writeJsonFromSources(sourceF,fcontent)
+				jfile=self._writeJsonFromSources(sourceF,fcontent,name=name,desc=desc)
 				ret=0
+			afterAdd=self.getRepos()
+			if len(beforAdd)==len(afterAdd):
+				if os.path.isfile(sourceF):
+					self._debug("Deleting {} (duplicated)".format(sourceF))
+					os.unlink(sourceF)
+				if os.path.isfile(jfile):
+					self._debug("Deleting {} (duplicated)".format(jfile))
+					os.unlink(jfile)
 		return(ret)
 	#def addRepo
 
@@ -774,26 +831,26 @@ class manager():
 	#def reversePinning
 
 	def isMirrorEnabled(self):
-		sw=True
-		n4d=appConfigN4d.appConfigN4d()
-		ret=n4d.n4dQuery("MirrorManager","is_mirror_available")
-		if isinstance(ret,dict):
-			if str(ret.get("status","-1"))!="0":
-				sw=False
-		elif isinstance(ret,str):
-			if ret!="Mirror available":
-				sw=False
+		sw=False
+		if appConfigN4d!=None:
+			sw=True
+			n4d=appConfigN4d.appConfigN4d()
+			ret=n4d.n4dQuery("MirrorManager","is_mirror_available")
+			if isinstance(ret,dict):
+				if str(ret.get("status","-1"))!="0":
+					sw=False
+			elif isinstance(ret,str):
+				if ret!="Mirror available":
+					sw=False
 		return(sw)
 	#def isMirrorEnabled
 	
 	def updateRepos(self):
-		#cmd=["apt","update"]
-		#subprocess.run(cmd)
-		rebost=store.client()
+		cmd=["apt","update"]
 		try:
-			rebost.update()
-		except:
-			pass
+			subprocess.run(cmd)
+		except Exception as e:
+			print("ERROR: {}".format(e))
 	#def updateRepos
 
 	def disableAll(self):
