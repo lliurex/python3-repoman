@@ -81,11 +81,12 @@ class manager():
 						repos.pop(repo["Name"])
 				data["Enabled"]=repo["Enabled"]
 				data["file"]=repo["file"]
-			popkey=repo.get("URIs","")
-			repo=self.getRepoByName(data["URIs"],repos)
-			if len(repo)<=0:
-				repo=self.getRepoByName(name,repos)
-				popkey=repo.get("Name","")
+				popkey=repo.get("URIs","")
+			else:
+				repo=self.getRepoByName(data["URIs"],repos)
+				if len(repo)<=0:
+					repo=self.getRepoByName(name,repos)
+					popkey=repo.get("Name","")
 			if len(repo)>0:
 				data["Enabled"]=repo["Enabled"]
 				if os.path.exists(data["file"])==False:
