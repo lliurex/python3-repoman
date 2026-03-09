@@ -64,13 +64,13 @@ class _configManager():
 		sortrepos={}
 		if os.path.exists(CONFDIR):
 			if default==True:
-				dirs=[os.path.join(CONFDIR,"default")]
+				confdirs=[os.path.join(CONFDIR,"default")]
 			else:
-				dirs=[os.path.join(CONFDIR,"default"),CONFDIR]
+				confdirs=[os.path.join(CONFDIR,"default"),CONFDIR]
 			uris={}
-			for dir in dirs:
+			for confdir in confdirs:
 				repos={}
-				for f in os.scandir(dir):
+				for f in os.scandir(confdir):
 					if f.path.endswith(".json"):
 						jRepo=self._readJFile(f.path)
 						for key,data in jRepo.items():
