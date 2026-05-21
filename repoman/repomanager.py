@@ -397,16 +397,22 @@ class manager():
 	def _sortRepoJson(self,repos):
 		sortrepos=repos[1]
 		key=list(sortrepos.keys())[0]
-		file=sortrepos[key]["file"]
-		name=sortrepos[key]["name"]
-		val=ord(name[0].lower())
-		if file==self.sourcesFile:
-			if "mirror" in name.lower():
-				val=0
-			elif "lliurex" in name.lower():
-				val=1
-			elif "ubuntu" in name.lower():
-				val=2
+		if "file" not in sortrepos[key]:
+			print("Repo INVALID key {} ---->".format(key))
+			print(print(sortrepos[key]))
+			print("Repo INVALID ----/>")
+			val=2
+		else:
+			file=sortrepos[key]["file"]
+			name=sortrepos[key]["name"]
+			val=ord(name[0].lower())
+			if file==self.sourcesFile:
+				if "mirror" in name.lower():
+					val=0
+				elif "lliurex" in name.lower():
+					val=1
+				elif "ubuntu" in name.lower():
+					val=2
 		return(val)
 	#def _sortRepoJson
 
