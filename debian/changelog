@@ -1,3 +1,9 @@
+python3-repoman (1.2.5-0llx23) jammy; urgency=medium
+
+  * Protect against malformed repositories
+
+ -- Juanma1980 <juanma1980@gmail.com>  Thu, 21 May 2026 13:35:39 +0200
+
 python3-repoman (1.2.4-2llx23) jammy; urgency=medium
 
   * Sync with noble
